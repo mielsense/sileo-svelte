@@ -132,6 +132,7 @@ const updateToast = (id: string, options: InternalSileoOptions) => {
 /* ------------------------------ Promise Types ----------------------------- */
 
 export interface SileoPromiseOptions<T = unknown> {
+    id?: string;
     loading: Pick<SileoOptions, 'title' | 'icon'>;
     success: SileoOptions | ((data: T) => SileoOptions);
     error: SileoOptions | ((err: unknown) => SileoOptions);
@@ -150,12 +151,19 @@ export const sileo = {
     action: (opts: SileoOptions) => createToast({ ...opts, state: 'action' }).id,
 
     promise: <T>(promise: Promise<T> | (() => Promise<T>), opts: SileoPromiseOptions<T>): Promise<T> => {
-        const { id } = createToast({
-            ...opts.loading,
-            state: 'loading',
-            duration: null,
-            position: opts.position
-        });
+        let id: string;
+
+        if (opts.id) {
+            id = opts.id;
+            updateToast(id, { ...opts.loading, state: 'loading', duration: null, id });
+        } else {
+            ({ id } = createToast({
+                ...opts.loading,
+                state: 'loading',
+                duration: null,
+                position: opts.position
+            }));
+        }
 
         const p = typeof promise === 'function' ? promise() : promise;
 
@@ -173,6 +181,10 @@ export const sileo = {
         });
 
         return p;
+    },
+
+    update: (id: string, opts: SileoOptions & { state?: SileoState }) => {
+        updateToast(id, opts);
     },
 
     dismiss: dismissToast,

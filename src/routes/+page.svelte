@@ -35,8 +35,8 @@
             description: 'Would you like to proceed with this operation?',
             button: {
                 title: 'Confirm',
-                onClick: () => {
-                    sileo.success({ title: 'Confirmed', description: 'Action was confirmed!' });
+                onClick: (id) => {
+                    sileo.update(id, { title: 'Confirmed', description: 'Action was confirmed!', state: 'success' });
                 }
             }
         });
@@ -77,14 +77,14 @@
     }
 
     function showWithButton() {
-        const id = sileo.info({
+        sileo.action({
             title: 'Update Available',
             description: 'Version 2.0 is ready to install.',
             button: {
                 title: 'Install Now',
-                onClick: () => {
-                    sileo.dismiss(id);
+                onClick: (id) => {
                     sileo.promise(() => new Promise((r) => setTimeout(r, 1500)), {
+                        id,
                         loading: { title: 'Installing' },
                         success: () => ({
                             title: 'Installed',
@@ -121,6 +121,14 @@
             title: 'Manual Only',
             description: 'This toast will not auto-expand. Hover to see content.',
             autopilot: false
+        });
+    }
+
+    function showCustomDescription() {
+        sileo.warning({
+            title: 'Bottom Center',
+            description: customDescription,
+            position: 'bottom-center'
         });
     }
 
@@ -181,6 +189,10 @@
 <svelte:head>
     <title>Sileo — Svelte 5 Toast Demo</title>
 </svelte:head>
+
+{#snippet customDescription()}
+    this is a custom description
+{/snippet}}
 
 <main>
     <div class="container">
@@ -253,6 +265,11 @@
                 <button
                     class="btn btn-custom"
                     onclick={showNoAutopilot}>No Autopilot</button
+                >
+
+                <button
+                    class="btn btn-custom"
+                    onclick={showCustomDescription}>Custom description</button
                 >
             </div>
         </section>

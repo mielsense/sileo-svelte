@@ -11,7 +11,7 @@ export interface SileoStyles {
 
 export interface SileoButton {
     title: string;
-    onClick: () => void;
+    onClick: (id: string) => void;
 }
 
 export const SILEO_POSITIONS = [

@@ -641,7 +641,7 @@
                             onclick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                view.button?.onClick();
+                                view.button?.onClick(id);
                             }}
                         >
                             {view.button.title}

@@ -80,7 +80,7 @@ sileo.success({ title: 'Saved' });
 sileo.error({ title: 'Error', description: 'Something went wrong.' });
 sileo.warning({ title: 'Warning', description: 'This action cannot be undone.' });
 sileo.info({ title: 'Info', description: 'A new version is available.' });
-sileo.action({ title: 'Action', description: 'Proceed?', button: { title: 'Confirm', onClick: () => {} } });
+sileo.action({ title: 'Action', description: 'Proceed?', button: { title: 'Confirm', onClick: (id) => {} } });
 sileo.show({ title: 'Custom' }); // uses the default 'success' state
 ```
 
@@ -119,7 +119,7 @@ interface SileoStyles {
 ```ts
 interface SileoButton {
     title: string; // button label
-    onClick: () => void; // click handler
+    onClick: (id: string) => void; // click handler — receives the toast's id
 }
 ```
 
@@ -134,12 +134,12 @@ There are two ways to remove a toast:
 **Graceful close** — collapses the expanded body first, then plays the exit animation.
 
 ```ts
-const id = sileo.info({
+sileo.info({
     title: 'Update Available',
     description: 'Version 2.0 is ready.',
     button: {
         title: 'Install',
-        onClick: () => {
+        onClick: (id) => {
             sileo.close(id); // collapse → exit
         }
     }
@@ -161,6 +161,49 @@ Removes all toasts at once. Optionally pass a position to only clear toasts in t
 ```ts
 sileo.clear(); // clear everything
 sileo.clear('bottom-right'); // clear only bottom-right toasts
+```
+
+---
+
+### Updating Toasts (Morph Transition)
+
+#### `sileo.update(id, opts)`
+
+**In-place update** — morphs an existing toast into new content with a smooth collapse → crossfade → re-expand transition. This is the same animation used internally by promise toasts when they resolve.
+
+```ts
+sileo.action({
+    title: 'Action',
+    description: 'Would you like to proceed?',
+    button: {
+        title: 'Confirm',
+        onClick: (id) => {
+            sileo.update(id, { title: 'Confirmed', description: 'Action was confirmed!', state: 'success' });
+        }
+    }
+});
+```
+
+The `opts` object accepts all `SileoOptions` fields plus an optional `state` to change the toast type (e.g. from `'action'` to `'success'`).
+
+You can also combine `update` with `promise` by passing the toast `id` into the promise options to morph the same toast through loading → success/error:
+
+```ts
+sileo.action({
+    title: 'Update Available',
+    description: 'Version 2.0 is ready to install.',
+    button: {
+        title: 'Install Now',
+        onClick: (id) => {
+            sileo.promise(() => installUpdate(), {
+                id,
+                loading: { title: 'Installing' },
+                success: () => ({ title: 'Installed', description: 'Successfully updated to v2.0!' }),
+                error: () => ({ title: 'Failed', description: 'Installation failed.' })
+            });
+        }
+    }
+});
 ```
 
 ---
@@ -195,7 +238,7 @@ sileo.promise(() => saveDocument(), {
     action: (data) => ({
         title: 'Saved',
         description: 'Open the document?',
-        button: { title: 'Open', onClick: () => openDocument(data) }
+        button: { title: 'Open', onClick: (id) => openDocument(data) }
     }),
     position: 'bottom-center'
 });
@@ -205,6 +248,7 @@ sileo.promise(() => saveDocument(), {
 
 | Option     | Type                                               | Required | Description                                                        |
 | ---------- | -------------------------------------------------- | -------- | ------------------------------------------------------------------ |
+| `id`       | `string`                                           | —        | Existing toast ID to morph. If omitted, a new toast is created.    |
 | `loading`  | `{ title?: string; icon?: Snippet \| null }`       | ✅       | Shown while the promise is pending.                                |
 | `success`  | `SileoOptions \| ((data: T) => SileoOptions)`      | ✅       | Shown when the promise resolves.                                   |
 | `error`    | `SileoOptions \| ((err: unknown) => SileoOptions)` | ✅       | Shown when the promise rejects.                                    |
@@ -321,7 +365,7 @@ The package exports the following from `sileo-svelte`:
 | Export                | Kind      | Description                                                                                                      |
 | --------------------- | --------- | ---------------------------------------------------------------------------------------------------------------- |
 | `Toaster`             | Component | The viewport manager — place once in your layout.                                                                |
-| `sileo`               | Object    | The toast API (`show`, `success`, `error`, `warning`, `info`, `action`, `promise`, `dismiss`, `close`, `clear`). |
+| `sileo`               | Object    | The toast API (`show`, `success`, `error`, `warning`, `info`, `action`, `promise`, `update`, `dismiss`, `close`, `clear`). |
 | `SileoOptions`        | Type      | Options for creating a toast.                                                                                    |
 | `SileoPosition`       | Type      | Position union type.                                                                                             |
 | `SileoState`          | Type      | Toast state union (`'success' \| 'loading' \| 'error' \| 'warning' \| 'info' \| 'action'`).                      |
