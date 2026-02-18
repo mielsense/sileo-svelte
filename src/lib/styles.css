@@ -236,7 +236,7 @@
 
 /* ---------------------------------- Badge --------------------------------- */
 
-[data-sileo-badge] {
+:where([data-sileo-badge]) {
     display: flex;
     height: 24px;
     width: 24px;
@@ -252,7 +252,7 @@
 
 /* ---------------------------------- Title --------------------------------- */
 
-[data-sileo-title] {
+:where([data-sileo-title]) {
     font-size: 0.825rem;
     line-height: 1rem;
     font-weight: 500;
@@ -262,29 +262,29 @@
 
 /* ------------------------------ State Colors ------------------------------ */
 
-:is([data-sileo-badge], [data-sileo-title])[data-state] {
+:where([data-sileo-badge][data-state], [data-sileo-title][data-state]) {
     --_c: var(--sileo-state-success);
     --sileo-tone: var(--_c);
     --sileo-tone-bg: color-mix(in oklch, var(--_c) 20%, transparent);
 }
 
-:is([data-sileo-badge], [data-sileo-title])[data-state='loading'] {
+:where([data-sileo-badge][data-state='loading'], [data-sileo-title][data-state='loading']) {
     --_c: var(--sileo-state-loading);
 }
 
-:is([data-sileo-badge], [data-sileo-title])[data-state='error'] {
+:where([data-sileo-badge][data-state='error'], [data-sileo-title][data-state='error']) {
     --_c: var(--sileo-state-error);
 }
 
-:is([data-sileo-badge], [data-sileo-title])[data-state='warning'] {
+:where([data-sileo-badge][data-state='warning'], [data-sileo-title][data-state='warning']) {
     --_c: var(--sileo-state-warning);
 }
 
-:is([data-sileo-badge], [data-sileo-title])[data-state='info'] {
+:where([data-sileo-badge][data-state='info'], [data-sileo-title][data-state='info']) {
     --_c: var(--sileo-state-info);
 }
 
-:is([data-sileo-badge], [data-sileo-title])[data-state='action'] {
+:where([data-sileo-badge][data-state='action'], [data-sileo-title][data-state='action']) {
     --_c: var(--sileo-state-action);
 }
 
@@ -324,7 +324,7 @@
     transition: opacity var(--sileo-duration) var(--sileo-spring-easing) calc(var(--sileo-duration) * 0.25);
 }
 
-[data-sileo-description] {
+:where([data-sileo-description]) {
     width: 100%;
     box-sizing: border-box;
     text-align: left;
@@ -344,7 +344,7 @@
 
 /* --------------------------------- Button --------------------------------- */
 
-[data-sileo-button] {
+:where([data-sileo-button]) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -361,34 +361,34 @@
     transition: background-color 150ms ease;
 }
 
-[data-sileo-button]:hover {
+:where([data-sileo-button]):hover {
     background-color: var(--sileo-btn-bg-hover, transparent);
 }
 
-[data-sileo-button][data-state] {
+:where([data-sileo-button][data-state]) {
     --_c: var(--sileo-state-success);
     --sileo-btn-color: var(--_c);
     --sileo-btn-bg: color-mix(in oklch, var(--_c) 15%, transparent);
     --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 25%, transparent);
 }
 
-[data-sileo-button][data-state='loading'] {
+:where([data-sileo-button][data-state='loading']) {
     --_c: var(--sileo-state-loading);
 }
 
-[data-sileo-button][data-state='error'] {
+:where([data-sileo-button][data-state='error']) {
     --_c: var(--sileo-state-error);
 }
 
-[data-sileo-button][data-state='warning'] {
+:where([data-sileo-button][data-state='warning']) {
     --_c: var(--sileo-state-warning);
 }
 
-[data-sileo-button][data-state='info'] {
+:where([data-sileo-button][data-state='info']) {
     --_c: var(--sileo-state-info);
 }
 
-[data-sileo-button][data-state='action'] {
+:where([data-sileo-button][data-state='action']) {
     --_c: var(--sileo-state-action);
 }
 
