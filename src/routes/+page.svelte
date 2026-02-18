@@ -140,6 +140,48 @@
         billingToasts.error('Payment failed', 'Please retry with another card.');
     }
 
+    function showStylesPropExample() {
+        sileo.action(
+            atSelected({
+                title: 'Styles prop applied',
+                description: 'This toast uses classes from options.styles on title, description, and button.',
+                fill: '#f8fafc',
+                styles: {
+                    title: 'styles-demo-title',
+                    description: 'styles-demo-description',
+                    button: 'styles-demo-button styles-demo-button-hover'
+                },
+                button: {
+                    title: 'Close',
+                    onClick: (id) => sileo.close(id)
+                }
+            })
+        );
+    }
+
+    function showVarsPropExample() {
+        sileo.action(
+            atSelected({
+                title: 'Vars prop applied',
+                description: 'These colors are controlled with options.vars and CSS variables only.',
+                fill: '#f8fafc',
+                vars: {
+                    titleColor: '#0f172a',
+                    descriptionColor: '#0f172a',
+                    badgeColor: '#1d4ed8',
+                    badgeBackground: '#dbeafe',
+                    buttonColor: '#ffffff',
+                    buttonBackground: '#111827',
+                    buttonHoverBackground: '#374151'
+                },
+                button: {
+                    title: 'Close',
+                    onClick: (id) => sileo.close(id)
+                }
+            })
+        );
+    }
+
     // Advanced examples
     function showWithButton() {
         sileo.action(
@@ -443,6 +485,14 @@
                             class="chip"
                             onclick={showScopedError}>Scoped Error</button
                         >
+                        <button
+                            class="chip"
+                            onclick={showStylesPropExample}>Styles Prop</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showVarsPropExample}>Vars Prop</button
+                        >
                     </div>
                 </div>
 
@@ -645,6 +695,31 @@
         color: #8f363d;
         background: #f1e5e7;
         border-color: #ecd4d8;
+    }
+
+    :global(.styles-demo-title) {
+        color: #0f172a;
+        background: #fef08a;
+        border-radius: 999px;
+        padding: 0.15rem 0.4rem;
+        text-transform: none;
+        font-weight: 700;
+    }
+
+    :global(.styles-demo-description) {
+        color: #0f172a;
+        background: #dbeafe;
+        border-radius: 0.75rem;
+        border: 1px solid #bfdbfe;
+    }
+
+    :global(.styles-demo-button) {
+        background: #111827;
+        color: #ffffff;
+    }
+
+    :global(.styles-demo-button-hover:hover) {
+        background: #374151;
     }
 
     @media (max-width: 700px) {

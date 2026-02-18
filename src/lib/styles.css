@@ -246,8 +246,8 @@
     padding: 2px;
     box-sizing: border-box;
     border-radius: 9999px;
-    color: var(--sileo-tone, currentColor);
-    background-color: var(--sileo-tone-bg, transparent);
+    color: var(--sileo-badge-color, var(--sileo-tone, currentColor));
+    background-color: var(--sileo-badge-bg, var(--sileo-tone-bg, transparent));
 }
 
 /* ---------------------------------- Title --------------------------------- */
@@ -257,7 +257,7 @@
     line-height: 1rem;
     font-weight: 500;
     text-transform: capitalize;
-    color: var(--sileo-tone, currentColor);
+    color: var(--sileo-title-color, var(--sileo-tone, currentColor));
 }
 
 /* ------------------------------ State Colors ------------------------------ */
@@ -331,7 +331,7 @@
     padding: 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--sileo-description-color, rgba(255, 255, 255, 0.8));
     word-wrap: break-word;
     overflow-wrap: break-word;
     contain: layout style;
@@ -356,13 +356,13 @@
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
-    color: var(--sileo-btn-color, currentColor);
-    background-color: var(--sileo-btn-bg, transparent);
+    color: var(--sileo-button-color, var(--sileo-btn-color, currentColor));
+    background-color: var(--sileo-button-bg, var(--sileo-btn-bg, transparent));
     transition: background-color 150ms ease;
 }
 
 :where([data-sileo-button]):hover {
-    background-color: var(--sileo-btn-bg-hover, transparent);
+    background-color: var(--sileo-button-bg-hover, var(--sileo-btn-bg-hover, transparent));
 }
 
 :where([data-sileo-button][data-state]) {

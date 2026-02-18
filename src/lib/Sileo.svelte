@@ -1,6 +1,6 @@
 <script lang="ts">
     import { untrack, type Snippet } from 'svelte';
-    import type { SileoButton, SileoState, SileoStyles } from './types.js';
+    import type { SileoButton, SileoState, SileoStyles, SileoVars } from './types.js';
     import Check from './icons/Check.svelte';
     import LoaderCircle from './icons/LoaderCircle.svelte';
     import X from './icons/X.svelte';
@@ -29,6 +29,7 @@
         toastState: SileoState;
         icon?: Snippet | null;
         styles?: SileoStyles;
+        vars?: SileoVars;
         button?: SileoButton;
         fill: string;
     }
@@ -51,6 +52,7 @@
         className?: string;
         icon?: Snippet | null;
         styles?: SileoStyles;
+        vars?: SileoVars;
         button?: SileoButton;
         roundness?: number;
         closing?: boolean;
@@ -76,6 +78,7 @@
         className,
         icon,
         styles,
+        vars,
         button,
         roundness,
         closing = false,
@@ -98,6 +101,7 @@
         toastState,
         icon,
         styles,
+        vars,
         button,
         fill
     });
@@ -380,6 +384,26 @@
 
     /* ------------------------------- Inline styles ---------------------------- */
 
+    const skinVars = $derived.by(() => {
+        const v = view?.vars;
+        if (!v) return '';
+
+        const entries: Array<[string, string | undefined]> = [
+            ['--sileo-title-color', v.titleColor],
+            ['--sileo-description-color', v.descriptionColor],
+            ['--sileo-badge-color', v.badgeColor],
+            ['--sileo-badge-bg', v.badgeBackground],
+            ['--sileo-button-color', v.buttonColor],
+            ['--sileo-button-bg', v.buttonBackground],
+            ['--sileo-button-bg-hover', v.buttonHoverBackground]
+        ];
+
+        return entries
+            .filter(([, value]) => value != null && value !== '')
+            .map(([name, value]) => `${name}:${value}`)
+            .join(';');
+    });
+
     const rootStyle = $derived(
         `--_h:${open ? expanded : HEIGHT}px;` +
             `--_pw:${resolvedPillWidth}px;` +
@@ -388,7 +412,8 @@
             `--_ph:${pillHeight}px;` +
             `--_by:${open ? 1 : 0};` +
             `--_ht:translateY(${open ? (expand === 'bottom' ? 3 : -3) : 0}px) scale(${open ? 0.9 : 1});` +
-            `--_co:${open ? 1 : 0}`
+            `--_co:${open ? 1 : 0}` +
+            (skinVars ? `;${skinVars}` : '')
     );
 
     /* -------------------------------- Handlers -------------------------------- */

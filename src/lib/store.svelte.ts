@@ -79,6 +79,9 @@ const mergeScopedOptions = <T extends InternalSileoOptions>(base: Partial<SileoO
     if (base?.styles || opts.styles) {
         merged.styles = { ...base?.styles, ...opts.styles };
     }
+    if (base?.vars || opts.vars) {
+        merged.vars = { ...base?.vars, ...opts.vars };
+    }
     return merged;
 };
 

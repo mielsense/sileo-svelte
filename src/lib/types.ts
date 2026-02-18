@@ -9,6 +9,16 @@ export interface SileoStyles {
     button?: string;
 }
 
+export interface SileoVars {
+    titleColor?: string;
+    descriptionColor?: string;
+    badgeColor?: string;
+    badgeBackground?: string;
+    buttonColor?: string;
+    buttonBackground?: string;
+    buttonHoverBackground?: string;
+}
+
 export interface SileoButton {
     title: string;
     onClick: (id: string) => void;
@@ -32,6 +42,7 @@ export interface SileoOptions {
     duration?: number | null;
     icon?: Snippet | null;
     styles?: SileoStyles;
+    vars?: SileoVars;
     fill?: string;
     roundness?: number;
     autopilot?: boolean | { expand?: number; collapse?: number };

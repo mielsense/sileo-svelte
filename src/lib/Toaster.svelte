@@ -200,6 +200,7 @@
                     icon={item.icon}
                     fill={item.fill}
                     styles={item.styles}
+                    vars={item.vars}
                     button={item.button}
                     roundness={item.roundness}
                     closing={item.closing}

@@ -46,7 +46,7 @@ Only one `<Toaster />` is needed in your app.
 | ---------- | --------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
 | `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                     |
 | `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                    |
-| `options`  | `Partial<SileoOptions>`                 | `undefined`   | Global defaults merged into every toast call. Per-toast fields win. `styles` is merged per-key. |
+| `options`  | `Partial<SileoOptions>`                 | `undefined`   | Global defaults merged into every toast call. Per-toast fields win. `styles` and `vars` are merged per-key. |
 | `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                               |
 
 `SileoOffsetConfig`:
@@ -115,7 +115,7 @@ billingToasts.success('Invoice paid');
 billingToasts.error('Payment failed', 'Please retry with another card.');
 ```
 
-Defaults are merged recursively for `styles` and shallow-merged for other fields.
+Defaults are merged recursively for `styles` and `vars`, and shallow-merged for other fields.
 
 ### Promise helper
 
@@ -172,6 +172,7 @@ clear(position?: SileoPosition): void
 | `duration`    | `number \| null`                                    | `6000`             | Auto-dismiss timeout in ms. `null` keeps it persistent. |
 | `icon`        | `Snippet \| null`                                   | State icon         | Custom icon snippet; `null` hides icon.                 |
 | `styles`      | `SileoStyles`                                       | `undefined`        | Per-part class overrides.                               |
+| `vars`        | `SileoVars`                                         | `undefined`        | Per-toast color variable overrides (Tailwind-free).     |
 | `fill`        | `string`                                            | `'#1c1c1e'`        | Toast background color.                                 |
 | `roundness`   | `number`                                            | `18`               | Corner radius.                                          |
 | `autopilot`   | `boolean \| { expand?: number; collapse?: number }` | `true`             | Automatic expand/collapse behavior.                     |
@@ -185,6 +186,20 @@ interface SileoStyles {
     description?: string;
     badge?: string;
     button?: string;
+}
+```
+
+`SileoVars`:
+
+```ts
+interface SileoVars {
+    titleColor?: string;
+    descriptionColor?: string;
+    badgeColor?: string;
+    badgeBackground?: string;
+    buttonColor?: string;
+    buttonBackground?: string;
+    buttonHoverBackground?: string;
 }
 ```
 
@@ -212,6 +227,41 @@ sileo.success({ title: 'Dark', description: 'Custom background.', fill: '#1a1a2e
 sileo.info({ title: 'Square', description: 'Reduced roundness.', roundness: 4 });
 sileo.warning({ title: 'Manual', description: 'Hover to read.', autopilot: false });
 ```
+
+### Styling with `styles` and `vars`
+
+```ts
+// Class-based styling
+sileo.action({
+    title: 'Class styling',
+    description: 'Uses styles.title/styles.description/styles.button',
+    styles: {
+        title: 'text-foreground',
+        description: 'text-foreground',
+        button: 'text-primary-foreground hover:bg-primary/90'
+    },
+    button: { title: 'Close', onClick: (id) => sileo.close(id) }
+});
+
+// Variable-based styling (recommended if utility extraction is inconsistent)
+sileo.action({
+    title: 'Variable styling',
+    description: 'Uses vars.*',
+    vars: {
+        titleColor: 'var(--foreground)',
+        descriptionColor: 'var(--foreground)',
+        buttonColor: 'var(--primary-foreground)',
+        buttonBackground: 'var(--primary)',
+        buttonHoverBackground: 'color-mix(in oklch, var(--primary) 85%, black)'
+    },
+    button: { title: 'Close', onClick: (id) => sileo.close(id) }
+});
+```
+
+Tailwind note:
+
+- If utility classes are passed inside JS strings (like `options.styles.button`), Tailwind may not always detect them.
+- For Tailwind v4, safelist them via `@source inline("text-foreground text-primary-foreground hover:bg-primary/90")`.
 
 ### Reusing a toast id
 
@@ -400,6 +450,7 @@ import {
     type SileoPosition,
     type SileoState,
     type SileoStyles,
+    type SileoVars,
     type SileoButton,
     type SileoPromiseOptions
 } from 'sileo-svelte';
@@ -429,6 +480,16 @@ Override these variables globally:
     --sileo-state-action: oklch(0.623 0.214 259.815);
 }
 ```
+
+Per-toast variables set via `options.vars` map to these CSS vars on each toast root:
+
+- `--sileo-title-color`
+- `--sileo-description-color`
+- `--sileo-badge-color`
+- `--sileo-badge-bg`
+- `--sileo-button-color`
+- `--sileo-button-bg`
+- `--sileo-button-bg-hover`
 
 ## Credits
 
