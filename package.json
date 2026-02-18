@@ -1,6 +1,6 @@
 {
     "name": "sileo-svelte",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "Physics-based gooey toast notifications for Svelte 5",
     "license": "MIT",
     "scripts": {
