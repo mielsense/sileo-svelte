@@ -1,184 +1,332 @@
 <script lang="ts">
-    import { sileo } from '$lib/index.js';
+    import { sileo, type SileoOptions, type SileoPosition } from '$lib/index.js';
 
+    // Shared defaults
+    const billingToasts = sileo.with({
+        position: 'bottom-right',
+        duration: 4000,
+        fill: '#101518'
+    });
+
+    const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const positions: SileoPosition[] = [
+        'top-left',
+        'top-center',
+        'top-right',
+        'bottom-left',
+        'bottom-center',
+        'bottom-right'
+    ];
+
+    let selectedPosition = $state<SileoPosition>('top-right');
+
+    function atSelected(opts: SileoOptions): SileoOptions {
+        return { ...opts, position: opts.position ?? selectedPosition };
+    }
+
+    // Core examples
     function showSuccess() {
-        sileo.success({
-            title: 'Success',
-            description: 'Your changes have been saved successfully.'
-        });
+        sileo.success(atSelected({ title: 'Success', description: 'Your changes have been saved successfully.' }));
     }
 
     function showError() {
-        sileo.error({
-            title: 'Error',
-            description: 'Something went wrong. Please try again.'
-        });
+        sileo.error(atSelected({ title: 'Error', description: 'Something went wrong. Please try again.' }));
     }
 
     function showWarning() {
-        sileo.warning({
-            title: 'Warning',
-            description: 'This action cannot be undone.'
-        });
+        sileo.warning(atSelected({ title: 'Warning', description: 'This action cannot be undone.' }));
     }
 
     function showInfo() {
-        sileo.info({
-            title: 'Info',
-            description: 'A new version is available for download.'
-        });
+        sileo.info(atSelected({ title: 'Info', description: 'A new version is available for download.' }));
     }
 
     function showAction() {
-        sileo.action({
-            title: 'Action',
-            description: 'Would you like to proceed with this operation?',
-            button: {
-                title: 'Confirm',
-                onClick: (id) => {
-                    sileo.update(id, { title: 'Confirmed', description: 'Action was confirmed!', state: 'success' });
+        sileo.action(
+            atSelected({
+                title: 'Action required',
+                description: 'Would you like to proceed with this operation?',
+                button: {
+                    title: 'Confirm',
+                    onClick: (id) => {
+                        sileo.update(id, {
+                            state: 'success',
+                            title: 'Confirmed',
+                            description: 'Action was confirmed.'
+                        });
+                    }
                 }
-            }
-        });
+            })
+        );
+    }
+
+    function showIcon() {
+        sileo.info(
+            atSelected({
+                title: 'Custom icon',
+                description: customDescription,
+                icon: customIcon
+            })
+        );
     }
 
     function showPromise() {
-        const fakeRequest = () =>
-            new Promise<{ name: string }>((resolve) => setTimeout(() => resolve({ name: 'Sileo' }), 2000));
-
-        sileo.promise(fakeRequest, {
-            loading: { title: 'Loading' },
-            success: (data) => ({
-                title: 'Success',
-                description: `Loaded "${data.name}" successfully!`
-            }),
-            error: () => ({
-                title: 'Error',
-                description: 'Failed to load data.'
-            })
-        });
+        sileo.promise(
+            async () => {
+                await delay(1200);
+                return { name: 'Sileo' };
+            },
+            {
+                position: selectedPosition,
+                loading: { title: 'Loading' },
+                success: (data) => ({
+                    title: 'Success',
+                    description: `Loaded "${data.name}" successfully!`
+                }),
+                error: () => ({
+                    title: 'Error',
+                    description: 'Failed to load data.'
+                })
+            }
+        );
     }
 
     function showPromiseError() {
-        const fakeRequest = () =>
-            new Promise<string>((_resolve, reject) => setTimeout(() => reject(new Error('Network error')), 2000));
+        sileo.promise(
+            async () => {
+                await delay(1200);
+                throw new Error('Network error');
+            },
+            {
+                position: selectedPosition,
+                loading: { title: 'Uploading' },
+                success: () => ({
+                    title: 'Uploaded',
+                    description: 'File uploaded successfully!'
+                }),
+                error: (err) => ({
+                    title: 'Upload failed',
+                    description: err instanceof Error ? err.message : 'Unknown error occurred.'
+                })
+            }
+        );
+    }
 
-        sileo.promise(fakeRequest, {
-            loading: { title: 'Uploading' },
-            success: () => ({
-                title: 'Uploaded',
-                description: 'File uploaded successfully!'
+    // Ergonomic examples
+    function showShorthandTitle() {
+        sileo.success('Saved');
+    }
+
+    function showShorthandWithDescription() {
+        sileo.info('New version available', 'Install the update from Settings to get the latest fixes.');
+    }
+
+    function showLoadingHelper() {
+        const id = sileo.loading(atSelected({ title: 'Uploading backup...' }));
+        setTimeout(() => {
+            sileo.update(id, {
+                state: 'success',
+                title: 'Upload complete',
+                description: 'Backup uploaded successfully.'
+            });
+        }, 1500);
+    }
+
+    function showScopedSuccess() {
+        billingToasts.success('Invoice paid');
+    }
+
+    function showScopedError() {
+        billingToasts.error('Payment failed', 'Please retry with another card.');
+    }
+
+    // Advanced examples
+    function showWithButton() {
+        sileo.action(
+            atSelected({
+                title: 'Update available',
+                description: 'Version 2.0 is ready to install.',
+                button: {
+                    title: 'Install now',
+                    onClick: (id) => {
+                        sileo.promise(() => delay(1500), {
+                            id,
+                            loading: { title: 'Installing' },
+                            success: () => ({
+                                title: 'Installed',
+                                description: 'Successfully updated to v2.0!'
+                            }),
+                            error: () => ({
+                                title: 'Install failed',
+                                description: 'Installation failed.'
+                            })
+                        });
+                    }
+                }
+            })
+        );
+    }
+
+    async function showAdvancedDeployFlow() {
+        const id = sileo.loading(atSelected({ title: 'Deploying v2.4.0...' }));
+
+        await delay(1000);
+        sileo.update(id, {
+            state: 'info',
+            title: 'Uploading build',
+            description: 'Artifacts pushed to edge cache.'
+        });
+
+        await delay(1000);
+        sileo.update(id, {
+            state: 'warning',
+            title: 'Running health checks',
+            description: 'Smoke tests on 6 regions...'
+        });
+
+        sileo.promise(
+            async () => {
+                await delay(900);
+                return { release: 'v2.4.0' };
+            },
+            {
+                id,
+                loading: { title: 'Switching traffic' },
+                success: (data) => ({
+                    state: 'action',
+                    title: `${data.release} is live`,
+                    description: 'Traffic switched to the new release.',
+                    button: {
+                        title: 'Close',
+                        onClick: (toastId) => sileo.close(toastId)
+                    }
+                }),
+                error: (err) => ({
+                    title: 'Rollback triggered',
+                    description: err instanceof Error ? err.message : 'Release failed',
+                    duration: null
+                })
+            }
+        );
+    }
+
+    function showAdvancedRetryFlow() {
+        const request = () =>
+            new Promise<string>((resolve, reject) => {
+                setTimeout(() => {
+                    const ok = Math.random() > 0.55;
+                    if (ok) resolve('Invoice #4921');
+                    else reject(new Error('Gateway timeout while charging card'));
+                }, 1000);
+            });
+
+        sileo.promise(request, {
+            position: selectedPosition,
+            loading: { title: 'Charging card' },
+            success: (invoice) => ({
+                state: 'action',
+                title: 'Payment captured',
+                description: `${invoice} created successfully.`,
+                button: {
+                    title: 'New charge',
+                    onClick: () => showAdvancedRetryFlow()
+                }
             }),
             error: (err) => ({
-                title: 'Upload Failed',
-                description: err instanceof Error ? err.message : 'Unknown error occurred.'
+                state: 'action',
+                title: 'Payment failed',
+                description: err instanceof Error ? err.message : 'Unknown payment failure',
+                duration: null,
+                button: {
+                    title: 'Retry',
+                    onClick: (id) => {
+                        sileo.promise(request, {
+                            id,
+                            loading: { title: 'Retrying charge' },
+                            success: (invoice) => ({
+                                title: 'Retry succeeded',
+                                description: `${invoice} created on retry.`
+                            }),
+                            error: (retryErr) => ({
+                                title: 'Still failing',
+                                description: retryErr instanceof Error ? retryErr.message : 'Unknown payment failure',
+                                duration: null
+                            })
+                        });
+                    }
+                }
             })
         });
     }
 
-    function showWithButton() {
-        sileo.action({
-            title: 'Update Available',
-            description: 'Version 2.0 is ready to install.',
-            button: {
-                title: 'Install Now',
-                onClick: (id) => {
-                    sileo.promise(() => new Promise((r) => setTimeout(r, 1500)), {
-                        id,
-                        loading: { title: 'Installing' },
-                        success: () => ({
-                            title: 'Installed',
-                            description: 'Successfully updated to v2.0!'
-                        }),
-                        error: () => ({
-                            title: 'Failed',
-                            description: 'Installation failed.'
-                        })
-                    });
+    function showAdvancedActionFlow() {
+        sileo.action(
+            atSelected({
+                title: 'Migration ready',
+                description: 'Apply production database migration now?',
+                button: {
+                    title: 'Run migration',
+                    onClick: (id) => {
+                        sileo.update(id, {
+                            state: 'loading',
+                            title: 'Preparing migration',
+                            description: 'Validating schema and creating backup...'
+                        });
+
+                        sileo.promise(
+                            async () => {
+                                await delay(1600);
+                                if (Math.random() > 0.35) return { rows: 1284 };
+                                throw new Error('Foreign key validation failed');
+                            },
+                            {
+                                id,
+                                loading: { title: 'Applying migration' },
+                                success: (result) => ({
+                                    state: 'success',
+                                    title: 'Migration complete',
+                                    description: `${result.rows} rows updated successfully.`,
+                                    duration: 3200
+                                }),
+                                error: (err) => ({
+                                    state: 'action',
+                                    title: 'Migration blocked',
+                                    description: err instanceof Error ? err.message : 'Unknown migration error',
+                                    duration: null,
+                                    button: {
+                                        title: 'Retry',
+                                        onClick: (toastId) => {
+                                            sileo.promise(
+                                                async () => {
+                                                    await delay(1300);
+                                                    return { rows: 1284 };
+                                                },
+                                                {
+                                                    id: toastId,
+                                                    loading: { title: 'Retrying migration' },
+                                                    success: (retryResult) => ({
+                                                        title: 'Retry complete',
+                                                        description: `${retryResult.rows} rows updated.`
+                                                    }),
+                                                    error: (retryErr) => ({
+                                                        title: 'Retry failed',
+                                                        description:
+                                                            retryErr instanceof Error
+                                                                ? retryErr.message
+                                                                : 'Unknown migration error',
+                                                        duration: null
+                                                    })
+                                                }
+                                            );
+                                        }
+                                    }
+                                })
+                            }
+                        );
+                    }
                 }
-            }
-        });
-    }
-
-    function showCustomFill() {
-        sileo.success({
-            title: 'Custom Fill',
-            description: 'This toast has a dark background.',
-            fill: '#1a1a2e'
-        });
-    }
-
-    function showCustomRoundness() {
-        sileo.info({
-            title: 'Square-ish',
-            description: 'This toast has reduced roundness.',
-            roundness: 6
-        });
-    }
-
-    function showNoAutopilot() {
-        sileo.warning({
-            title: 'Manual Only',
-            description: 'This toast will not auto-expand. Hover to see content.',
-            autopilot: false
-        });
-    }
-
-    function showCustomDescription() {
-        sileo.warning({
-            title: 'Bottom Center',
-            description: customDescription,
-            position: 'bottom-center'
-        });
-    }
-
-    function showShortDuration() {
-        sileo.success({
-            title: 'Quick',
-            description: 'This toast disappears in 2 seconds.',
-            duration: 2000
-        });
-    }
-
-    function showLongDuration() {
-        sileo.info({
-            title: 'Sticky',
-            description:
-                'This toast sticks around for 15 seconds. And it has a really really long text to test something out',
-            duration: 15000
-        });
-    }
-
-    function showPersistent() {
-        sileo.warning({
-            title: 'Persistent',
-            description: 'This toast stays until you swipe it away.',
-            duration: null
-        });
-    }
-
-    function showBottomLeft() {
-        sileo.success({
-            title: 'Bottom Right',
-            description: 'This toast appears in the bottom left.',
-            position: 'bottom-right'
-        });
-    }
-
-    function showTopCenter() {
-        sileo.info({
-            title: 'Top Center',
-            description: 'This toast appears at the top center.',
-            position: 'top-center'
-        });
-    }
-
-    function showBottomCenter() {
-        sileo.warning({
-            title: 'Bottom Center',
-            description: 'This toast appears at the bottom center.',
-            position: 'bottom-center'
-        });
+            })
+        );
     }
 
     function clearAll() {
@@ -187,134 +335,161 @@
 </script>
 
 <svelte:head>
-    <title>Sileo — Svelte 5 Toast Demo</title>
+    <title>Sileo-Svelte Playground</title>
 </svelte:head>
 
 {#snippet customDescription()}
-    this is a custom description
-{/snippet}}
+    <span>Custom snippet body with rich content support.</span>
+{/snippet}
+
+{#snippet customIcon()}
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M12 3l2.6 5.27L20 9.27l-4 3.9.94 5.53L12 16l-4.94 2.7.94-5.53-4-3.9 5.4-1z" />
+    </svg>
+{/snippet}
 
 <main>
-    <div class="container">
-        <div class="hero">
-            <h1>Sileo</h1>
-            <p class="subtitle">Physics-based toast notifications for Svelte 5</p>
-        </div>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">Sileo Svelte</div>
+            <nav>
+                <a
+                    href="https://github.com/mielsense/sileo-svelte"
+                    aria-label="GitHub">GitHub</a
+                >
+            </nav>
+        </header>
 
-        <section class="section">
-            <h2>Toast Types</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-success"
-                    onclick={showSuccess}>Success</button
-                >
-                <button
-                    class="btn btn-error"
-                    onclick={showError}>Error</button
-                >
-                <button
-                    class="btn btn-warning"
-                    onclick={showWarning}>Warning</button
-                >
-                <button
-                    class="btn btn-info"
-                    onclick={showInfo}>Info</button
-                >
-                <button
-                    class="btn btn-action"
-                    onclick={showAction}>Action</button
-                >
-            </div>
+        <section class="hero">
+            <h1>Playground.</h1>
+            <p>Pick a position, then click any type to fire it live.</p>
         </section>
 
-        <section class="section">
-            <h2>Promise</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-promise"
-                    onclick={showPromise}>Promise (Success)</button
-                >
-                <button
-                    class="btn btn-promise"
-                    onclick={showPromiseError}>Promise (Error)</button
-                >
+        <section class="controls">
+            <div class="chips">
+                {#each positions as pos (pos)}
+                    <button
+                        class="chip"
+                        class:active={selectedPosition === pos}
+                        onclick={() => (selectedPosition = pos)}>{pos}</button
+                    >
+                {/each}
             </div>
-        </section>
 
-        <section class="section">
-            <h2>With Button</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-info"
-                    onclick={showWithButton}>Update Available</button
-                >
+            <hr />
+
+            <div class="action-groups">
+                <div class="group">
+                    <p>Core</p>
+                    <div class="chips chips-actions">
+                        <button
+                            class="chip"
+                            onclick={showSuccess}>Success</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showError}>Error</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showWarning}>Warning</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showInfo}>Info</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showAction}>Action</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showIcon}>Icon</button
+                        >
+                    </div>
+                </div>
+
+                <div class="group">
+                    <p>Ergonomic</p>
+                    <div class="chips chips-actions">
+                        <button
+                            class="chip"
+                            onclick={showShorthandTitle}>Shorthand</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showShorthandWithDescription}>Shorthand+</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showLoadingHelper}>Loading</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showScopedSuccess}>Scoped</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showScopedError}>Scoped Error</button
+                        >
+                    </div>
+                </div>
+
+                <div class="group">
+                    <p>Promise</p>
+                    <div class="chips chips-actions">
+                        <button
+                            class="chip"
+                            onclick={showPromise}>Promise</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showPromiseError}>Promise Error</button
+                        >
+                    </div>
+                </div>
+
+                <div class="group">
+                    <p>Advanced</p>
+                    <div class="chips chips-actions">
+                        <button
+                            class="chip"
+                            onclick={showWithButton}>Action->Promise</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showAdvancedDeployFlow}>Deploy Flow</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showAdvancedRetryFlow}>Retry Flow</button
+                        >
+                        <button
+                            class="chip"
+                            onclick={showAdvancedActionFlow}>Migration Flow</button
+                        >
+                    </div>
+
+                    <div class="group chips">
+                        <br />
+                        <button
+                            class="chip danger"
+                            onclick={clearAll}>Clear</button
+                        >
+                    </div>
+                </div>
             </div>
-        </section>
-
-        <section class="section">
-            <h2>Customization</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-custom"
-                    onclick={showCustomFill}>Custom Fill</button
-                >
-                <button
-                    class="btn btn-custom"
-                    onclick={showCustomRoundness}>Custom Roundness</button
-                >
-                <button
-                    class="btn btn-custom"
-                    onclick={showNoAutopilot}>No Autopilot</button
-                >
-
-                <button
-                    class="btn btn-custom"
-                    onclick={showCustomDescription}>Custom description</button
-                >
-            </div>
-        </section>
-
-        <section class="section">
-            <h2>Duration</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-custom"
-                    onclick={showShortDuration}>2s Duration</button
-                >
-                <button
-                    class="btn btn-custom"
-                    onclick={showLongDuration}>15s Duration</button
-                >
-                <button
-                    class="btn btn-custom"
-                    onclick={showPersistent}>Persistent (∞)</button
-                >
-            </div>
-        </section>
-
-        <section class="section">
-            <h2>Positions</h2>
-            <div class="grid">
-                <button
-                    class="btn btn-position"
-                    onclick={showBottomLeft}>Bottom Right</button
-                >
-                <button
-                    class="btn btn-position"
-                    onclick={showTopCenter}>Top Center</button
-                >
-                <button
-                    class="btn btn-position"
-                    onclick={showBottomCenter}>Bottom Center</button
-                >
-            </div>
-        </section>
-
-        <section class="section">
-            <button
-                class="btn btn-clear"
-                onclick={clearAll}>Clear All Toasts</button
-            >
         </section>
     </div>
 </main>
@@ -322,129 +497,179 @@
 <style>
     :global(body) {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #ffffff;
-        color: #1a1a1a;
-        min-height: 100vh;
+        background: #f6f6f7;
+        color: #0f1115;
+        font-family: 'Plus Jakarta Sans', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
     }
 
     main {
-        display: flex;
-        justify-content: center;
-        padding: 3rem 1.5rem;
+        min-height: 100vh;
+        padding: 1.5rem;
+        box-sizing: border-box;
     }
 
-    .container {
-        max-width: 600px;
-        width: 100%;
+    .page {
+        margin: 0 auto;
+        max-width: 920px;
+        min-height: calc(100vh - 3rem);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .topbar {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #e8e8eb;
+    }
+
+    .brand {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1f2329;
+    }
+
+    nav {
+        display: flex;
+        gap: 1.2rem;
+    }
+
+    nav a {
+        color: #8a9099;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 500;
+    }
+
+    nav a:hover {
+        color: #5d6673;
     }
 
     .hero {
+        margin-top: 20vh;
         text-align: center;
-        margin-bottom: 3rem;
     }
 
     h1 {
-        font-size: 3rem;
-        font-weight: 700;
-        margin: 0 0 0.5rem;
-        background: linear-gradient(135deg, #7c3aed, #2563eb, #059669);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .subtitle {
-        color: #666;
-        font-size: 1.1rem;
         margin: 0;
+        font-size: clamp(2.1rem, 5vw, 3.6rem);
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: #0b0d10;
     }
 
-    .section {
+    .hero p {
+        margin: 0.85rem 0 0;
+        color: #949aa3;
+        font-size: 1.02rem;
+    }
+
+    .controls {
+        margin-top: auto;
         margin-bottom: 2rem;
     }
 
-    h2 {
-        font-size: 1rem;
-        font-weight: 500;
-        color: #999;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0 0 0.75rem;
-    }
-
-    .grid {
+    .chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        justify-content: center;
+        gap: 0.55rem;
     }
 
-    .btn {
-        padding: 0.6rem 1.25rem;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        background: #f5f5f5;
-        color: #1a1a1a;
-        font-size: 0.875rem;
-        font-weight: 500;
+    hr {
+        border: 0;
+        border-top: 1px solid #e9eaed;
+        margin: 1.3rem auto;
+        max-width: 620px;
+    }
+
+    .chips-actions {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .action-groups {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .group {
+        display: grid;
+        gap: 0.38rem;
+    }
+
+    .group p {
+        margin: 0;
+        text-align: center;
+        font-size: 0.73rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #a0a6ae;
+    }
+
+    .chip {
+        appearance: none;
+        border: 1px solid #ececef;
+        background: #efeff1;
+        color: #8e939a;
+        border-radius: 999px;
+        padding: 0.5rem 0.82rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        line-height: 1;
         cursor: pointer;
         transition:
-            background 150ms ease,
-            border-color 150ms ease,
-            transform 100ms ease;
+            color 120ms ease,
+            background-color 120ms ease,
+            border-color 120ms ease;
     }
 
-    .btn:hover {
-        background: #eaeaea;
-        border-color: #bbb;
+    .chip:hover {
+        color: #5f6570;
+        background: #ececef;
     }
 
-    .btn:active {
-        transform: scale(0.97);
+    .chip.active {
+        background: #101114;
+        border-color: #101114;
+        color: #f7f8f9;
     }
 
-    .btn-success:hover {
-        border-color: oklch(0.723 0.219 142.136);
+    .chip.danger {
+        color: #9a5f63;
     }
 
-    .btn-error:hover {
-        border-color: oklch(0.637 0.237 25.331);
+    .chip.danger:hover {
+        color: #8f363d;
+        background: #f1e5e7;
+        border-color: #ecd4d8;
     }
 
-    .btn-warning:hover {
-        border-color: oklch(0.795 0.184 86.047);
-    }
+    @media (max-width: 700px) {
+        main {
+            padding: 0.9rem;
+        }
 
-    .btn-info:hover {
-        border-color: oklch(0.685 0.169 237.323);
-    }
+        .page {
+            min-height: calc(100vh - 1.8rem);
+        }
 
-    .btn-action:hover {
-        border-color: oklch(0.623 0.214 259.815);
-    }
+        .topbar {
+            height: 50px;
+        }
 
-    .btn-promise:hover {
-        border-color: #a78bfa;
-    }
+        nav {
+            gap: 0.8rem;
+        }
 
-    .btn-custom:hover {
-        border-color: #f472b6;
-    }
+        .hero {
+            margin-top: 16vh;
+        }
 
-    .btn-position:hover {
-        border-color: #fbbf24;
-    }
-
-    .btn-clear {
-        width: 100%;
-        background: #fafafa;
-        border-color: #ccc;
-        color: #888;
-    }
-
-    .btn-clear:hover {
-        background: #fef2f2;
-        border-color: #ef4444;
-        color: #ef4444;
+        .hero p {
+            font-size: 0.92rem;
+        }
     }
 </style>
