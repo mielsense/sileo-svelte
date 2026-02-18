@@ -1,6 +1,6 @@
 {
     "name": "sileo-svelte",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Physics-based gooey toast notifications for Svelte 5",
     "license": "MIT",
     "scripts": {
@@ -62,5 +62,15 @@
         "toast",
         "notifications",
         "sileo"
-    ]
+    ],
+    "main": "dist/index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mielsense/sileo-svelte.git"
+    },
+    "author": "https://github.com/mielsense",
+    "bugs": {
+        "url": "https://github.com/mielsense/sileo-svelte/issues"
+    },
+    "homepage": "https://github.com/mielsense/sileo-svelte#readme"
 }
