@@ -26,6 +26,8 @@ export interface SileoItem extends InternalSileoOptions {
 
 export type SileoOffsetValue = number | string;
 export type SileoOffsetConfig = Partial<Record<'top' | 'right' | 'bottom' | 'left', SileoOffsetValue>>;
+export type SileoInput = SileoOptions | string;
+export type SileoDescriptionInput = SileoOptions['description'];
 
 /* --------------------------------- Helpers -------------------------------- */
 
@@ -72,6 +74,24 @@ const closeToast = (id: string) => {
     setTimeout(() => dismissToast(id), COLLAPSE_DURATION);
 };
 
+const mergeScopedOptions = <T extends InternalSileoOptions>(base: Partial<SileoOptions> | undefined, opts: T): T => {
+    const merged = { ...base, ...opts } as T;
+    if (base?.styles || opts.styles) {
+        merged.styles = { ...base?.styles, ...opts.styles };
+    }
+    return merged;
+};
+
+const normalizeInput = (input: SileoInput, description?: SileoDescriptionInput): SileoOptions => {
+    if (typeof input === 'string') {
+        return description === undefined ? { title: input } : { title: input, description };
+    }
+    if (description !== undefined && input.description === undefined) {
+        return { ...input, description };
+    }
+    return input;
+};
+
 const resolveAutopilot = (
     opts: InternalSileoOptions,
     duration: number | null
@@ -86,9 +106,7 @@ const resolveAutopilot = (
 };
 
 const mergeOptions = (options: InternalSileoOptions): InternalSileoOptions => ({
-    ...store.globalOptions,
-    ...options,
-    styles: { ...store.globalOptions?.styles, ...options.styles }
+    ...mergeScopedOptions(store.globalOptions, options)
 });
 
 const buildSileoItem = (merged: InternalSileoOptions, id: string, fallbackPosition?: SileoPosition): SileoItem => {
@@ -140,56 +158,99 @@ export interface SileoPromiseOptions<T = unknown> {
     position?: SileoPosition;
 }
 
+export interface SileoScopedApi {
+    show: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    success: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    error: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    warning: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    info: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    action: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    loading: (input: SileoInput, description?: SileoDescriptionInput) => string;
+    promise: <T>(promise: Promise<T> | (() => Promise<T>), opts: SileoPromiseOptions<T>) => Promise<T>;
+    update: (id: string, opts: SileoOptions & { state?: SileoState }) => void;
+    dismiss: (id: string) => void;
+    close: (id: string) => void;
+    clear: (position?: SileoPosition) => void;
+}
+
+export interface SileoApi extends SileoScopedApi {
+    with: (defaults: Partial<SileoOptions>) => SileoApi;
+}
+
 /* ------------------------------- Public API ------------------------------- */
 
-export const sileo = {
-    show: (opts: SileoOptions) => createToast(opts).id,
-    success: (opts: SileoOptions) => createToast({ ...opts, state: 'success' }).id,
-    error: (opts: SileoOptions) => createToast({ ...opts, state: 'error' }).id,
-    warning: (opts: SileoOptions) => createToast({ ...opts, state: 'warning' }).id,
-    info: (opts: SileoOptions) => createToast({ ...opts, state: 'info' }).id,
-    action: (opts: SileoOptions) => createToast({ ...opts, state: 'action' }).id,
+const createSileoApi = (scopedDefaults?: Partial<SileoOptions>): SileoApi => {
+    const withDefaults = <T extends InternalSileoOptions>(opts: T): T => mergeScopedOptions(scopedDefaults, opts);
+    const createWithState = (
+        state: SileoState | undefined,
+        input: SileoInput,
+        description?: SileoDescriptionInput
+    ): string => {
+        const opts = withDefaults(normalizeInput(input, description));
+        return createToast(state ? { ...opts, state } : opts).id;
+    };
 
-    promise: <T>(promise: Promise<T> | (() => Promise<T>), opts: SileoPromiseOptions<T>): Promise<T> => {
-        let id: string;
+    return {
+        show: (input, description) => createWithState(undefined, input, description),
+        success: (input, description) => createWithState('success', input, description),
+        error: (input, description) => createWithState('error', input, description),
+        warning: (input, description) => createWithState('warning', input, description),
+        info: (input, description) => createWithState('info', input, description),
+        action: (input, description) => createWithState('action', input, description),
+        loading: (input, description) => {
+            const opts = withDefaults(normalizeInput(input, description));
+            return createToast({ ...opts, state: 'loading', duration: opts.duration ?? null }).id;
+        },
 
-        if (opts.id) {
-            id = opts.id;
-            updateToast(id, { ...opts.loading, state: 'loading', duration: null, id });
-        } else {
-            ({ id } = createToast({
-                ...opts.loading,
-                state: 'loading',
-                duration: null,
-                position: opts.position
-            }));
-        }
+        promise: <T>(promise: Promise<T> | (() => Promise<T>), opts: SileoPromiseOptions<T>): Promise<T> => {
+            let id: string;
+            const loadingOpts = withDefaults({ ...opts.loading, position: opts.position });
 
-        const p = typeof promise === 'function' ? promise() : promise;
-
-        p.then((data) => {
-            if (opts.action) {
-                const actionOpts = typeof opts.action === 'function' ? opts.action(data) : opts.action;
-                updateToast(id, { ...actionOpts, state: 'action', id });
+            if (opts.id) {
+                id = opts.id;
+                updateToast(id, { ...loadingOpts, state: 'loading', duration: null, id });
             } else {
-                const successOpts = typeof opts.success === 'function' ? opts.success(data) : opts.success;
-                updateToast(id, { ...successOpts, state: 'success', id });
+                ({ id } = createToast({
+                    ...loadingOpts,
+                    state: 'loading',
+                    duration: null
+                }));
             }
-        }).catch((err) => {
-            const errorOpts = typeof opts.error === 'function' ? opts.error(err) : opts.error;
-            updateToast(id, { ...errorOpts, state: 'error', id });
-        });
 
-        return p;
-    },
+            const p = typeof promise === 'function' ? promise() : promise;
 
-    update: (id: string, opts: SileoOptions & { state?: SileoState }) => {
-        updateToast(id, opts);
-    },
+            p.then((data) => {
+                if (opts.action) {
+                    const actionOpts = withDefaults(
+                        typeof opts.action === 'function' ? opts.action(data) : opts.action
+                    );
+                    updateToast(id, { ...actionOpts, state: 'action', id });
+                } else {
+                    const successOpts = withDefaults(
+                        typeof opts.success === 'function' ? opts.success(data) : opts.success
+                    );
+                    updateToast(id, { ...successOpts, state: 'success', id });
+                }
+            }).catch((err) => {
+                const errorOpts = withDefaults(typeof opts.error === 'function' ? opts.error(err) : opts.error);
+                updateToast(id, { ...errorOpts, state: 'error', id });
+            });
 
-    dismiss: dismissToast,
-    close: closeToast,
+            return p;
+        },
 
-    clear: (position?: SileoPosition) =>
-        store.update((prev) => (position ? prev.filter((t) => t.position !== position) : []))
+        update: (id: string, opts: SileoOptions & { state?: SileoState }) => {
+            updateToast(id, withDefaults(opts));
+        },
+
+        dismiss: dismissToast,
+        close: closeToast,
+
+        clear: (position?: SileoPosition) =>
+            store.update((prev) => (position ? prev.filter((t) => t.position !== position) : [])),
+
+        with: (defaults: Partial<SileoOptions>) => createSileoApi(mergeScopedOptions(scopedDefaults, defaults))
+    };
 };
+
+export const sileo = createSileoApi();

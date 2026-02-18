@@ -105,7 +105,9 @@
         }
 
         schedule(toasts);
+    });
 
+    $effect(() => {
         return () => {
             clearAllTimers();
         };
@@ -145,10 +147,10 @@
         const parts: string[] = [];
         const px = (v: SileoOffsetValue) => (typeof v === 'number' ? `${v}px` : v);
 
-        if (pos.startsWith('top') && o.top) parts.push(`top:${px(o.top)}`);
-        if (pos.startsWith('bottom') && o.bottom) parts.push(`bottom:${px(o.bottom)}`);
-        if (pos.endsWith('left') && o.left) parts.push(`left:${px(o.left)}`);
-        if (pos.endsWith('right') && o.right) parts.push(`right:${px(o.right)}`);
+        if (pos.startsWith('top') && o.top != null) parts.push(`top:${px(o.top)}`);
+        if (pos.startsWith('bottom') && o.bottom != null) parts.push(`bottom:${px(o.bottom)}`);
+        if (pos.endsWith('left') && o.left != null) parts.push(`left:${px(o.left)}`);
+        if (pos.endsWith('right') && o.right != null) parts.push(`right:${px(o.right)}`);
 
         return parts.length ? parts.join(';') : undefined;
     }

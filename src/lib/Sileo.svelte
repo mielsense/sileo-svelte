@@ -111,7 +111,7 @@
 
     /* ---------------------------------- Refs ---------------------------------- */
 
-    let buttonEl: HTMLButtonElement | undefined = $state();
+    let buttonEl: HTMLDivElement | undefined = $state();
     let headerEl: HTMLDivElement | undefined = $state();
     let contentEl: HTMLDivElement | undefined = $state();
     let innerEl: HTMLDivElement | undefined = $state();
@@ -449,12 +449,21 @@
             }
         };
 
+        const onCancel = () => {
+            pointerStart = null;
+            el.style.transform = '';
+        };
+
         el.addEventListener('pointermove', onMove, { passive: true });
         el.addEventListener('pointerup', onUp, { passive: true });
+        el.addEventListener('pointercancel', onCancel, { passive: true });
+        el.addEventListener('lostpointercapture', onCancel);
 
         return () => {
             el.removeEventListener('pointermove', onMove);
             el.removeEventListener('pointerup', onUp);
+            el.removeEventListener('pointercancel', onCancel);
+            el.removeEventListener('lostpointercapture', onCancel);
         };
     });
 
@@ -475,9 +484,9 @@
 </script>
 
 {#if view}
-    <button
+    <div
         bind:this={buttonEl}
-        type="button"
+        role="group"
         data-sileo-toast
         data-ready={ready}
         data-expanded={open}
@@ -650,5 +659,5 @@
                 </div>
             </div>
         {/if}
-    </button>
+    </div>
 {/if}
