@@ -199,8 +199,8 @@
                     expand={dir}
                     icon={item.icon}
                     fill={item.fill}
+                    classes={item.classes}
                     styles={item.styles}
-                    vars={item.vars}
                     button={item.button}
                     roundness={item.roundness}
                     closing={item.closing}

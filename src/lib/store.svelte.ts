@@ -76,11 +76,11 @@ const closeToast = (id: string) => {
 
 const mergeScopedOptions = <T extends InternalSileoOptions>(base: Partial<SileoOptions> | undefined, opts: T): T => {
     const merged = { ...base, ...opts } as T;
+    if (base?.classes || opts.classes) {
+        merged.classes = { ...base?.classes, ...opts.classes };
+    }
     if (base?.styles || opts.styles) {
         merged.styles = { ...base?.styles, ...opts.styles };
-    }
-    if (base?.vars || opts.vars) {
-        merged.vars = { ...base?.vars, ...opts.vars };
     }
     return merged;
 };

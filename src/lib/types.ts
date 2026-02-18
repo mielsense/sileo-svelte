@@ -2,14 +2,14 @@ import type { Snippet } from 'svelte';
 
 export type SileoState = 'success' | 'loading' | 'error' | 'warning' | 'info' | 'action';
 
-export interface SileoStyles {
+export interface SileoClasses {
     title?: string;
     description?: string;
     badge?: string;
     button?: string;
 }
 
-export interface SileoVars {
+export interface SileoStyles {
     titleColor?: string;
     descriptionColor?: string;
     badgeColor?: string;
@@ -41,8 +41,8 @@ export interface SileoOptions {
     position?: SileoPosition;
     duration?: number | null;
     icon?: Snippet | null;
+    classes?: SileoClasses;
     styles?: SileoStyles;
-    vars?: SileoVars;
     fill?: string;
     roundness?: number;
     autopilot?: boolean | { expand?: number; collapse?: number };

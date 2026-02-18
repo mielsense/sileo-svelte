@@ -1,6 +1,6 @@
 <script lang="ts">
     import { untrack, type Snippet } from 'svelte';
-    import type { SileoButton, SileoState, SileoStyles, SileoVars } from './types.js';
+    import type { SileoButton, SileoClasses, SileoState, SileoStyles } from './types.js';
     import Check from './icons/Check.svelte';
     import LoaderCircle from './icons/LoaderCircle.svelte';
     import X from './icons/X.svelte';
@@ -28,8 +28,8 @@
         description?: Snippet | string;
         toastState: SileoState;
         icon?: Snippet | null;
+        classes?: SileoClasses;
         styles?: SileoStyles;
-        vars?: SileoVars;
         button?: SileoButton;
         fill: string;
     }
@@ -51,8 +51,8 @@
         expand?: 'top' | 'bottom';
         className?: string;
         icon?: Snippet | null;
+        classes?: SileoClasses;
         styles?: SileoStyles;
-        vars?: SileoVars;
         button?: SileoButton;
         roundness?: number;
         closing?: boolean;
@@ -77,8 +77,8 @@
         expand = 'bottom',
         className,
         icon,
+        classes,
         styles,
-        vars,
         button,
         roundness,
         closing = false,
@@ -100,8 +100,8 @@
         description,
         toastState,
         icon,
+        classes,
         styles,
-        vars,
         button,
         fill
     });
@@ -385,7 +385,7 @@
     /* ------------------------------- Inline styles ---------------------------- */
 
     const skinVars = $derived.by(() => {
-        const v = view?.vars;
+        const v = view?.styles;
         if (!v) return '';
 
         const entries: Array<[string, string | undefined]> = [
@@ -600,7 +600,7 @@
                         <div
                             data-sileo-badge
                             data-state={headerLayer.current.view.toastState}
-                            class={headerLayer.current.view.styles?.badge}
+                            class={headerLayer.current.view.classes?.badge}
                         >
                             {#if headerLayer.current.view.icon != null && isSnippet(headerLayer.current.view.icon)}
                                 {@render headerLayer.current.view.icon()}
@@ -612,7 +612,7 @@
                         <span
                             data-sileo-title
                             data-state={headerLayer.current.view.toastState}
-                            class={headerLayer.current.view.styles?.title}
+                            class={headerLayer.current.view.classes?.title}
                         >
                             {headerLayer.current.view.title}
                         </span>
@@ -627,7 +627,7 @@
                         <div
                             data-sileo-badge
                             data-state={headerLayer.prev.view.toastState}
-                            class={headerLayer.prev.view.styles?.badge}
+                            class={headerLayer.prev.view.classes?.badge}
                         >
                             {#if headerLayer.prev.view.icon != null && isSnippet(headerLayer.prev.view.icon)}
                                 {@render headerLayer.prev.view.icon()}
@@ -639,7 +639,7 @@
                         <span
                             data-sileo-title
                             data-state={headerLayer.prev.view.toastState}
-                            class={headerLayer.prev.view.styles?.title}
+                            class={headerLayer.prev.view.classes?.title}
                         >
                             {headerLayer.prev.view.title}
                         </span>
@@ -657,7 +657,7 @@
                 <div
                     bind:this={contentEl}
                     data-sileo-description
-                    class={view.styles?.description}
+                    class={view.classes?.description}
                 >
                     {#if view.description}
                         {#if isSnippet(view.description)}
@@ -671,7 +671,7 @@
                             href="#!"
                             data-sileo-button
                             data-state={view.toastState}
-                            class={view.styles?.button}
+                            class={view.classes?.button}
                             onclick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();

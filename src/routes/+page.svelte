@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { sileo, type SileoOptions, type SileoPosition } from '$lib/index.js';
 
     // Shared defaults
@@ -19,6 +20,16 @@
     ];
 
     let selectedPosition = $state<SileoPosition>('top-right');
+    let darkMode = $state(false);
+
+    onMount(() => {
+        darkMode = document.documentElement.classList.contains('dark');
+    });
+
+    function toggleDarkMode() {
+        darkMode = !darkMode;
+        document.documentElement.classList.toggle('dark', darkMode);
+    }
 
     function atSelected(opts: SileoOptions): SileoOptions {
         return { ...opts, position: opts.position ?? selectedPosition };
@@ -140,13 +151,13 @@
         billingToasts.error('Payment failed', 'Please retry with another card.');
     }
 
-    function showStylesPropExample() {
+    function showClassesPropExample() {
         sileo.action(
             atSelected({
-                title: 'Styles prop applied',
-                description: 'This toast uses classes from options.styles on title, description, and button.',
+                title: 'Classes prop applied',
+                description: 'This toast uses classes from options.classes on title, description, and button.',
                 fill: '#f8fafc',
-                styles: {
+                classes: {
                     title: 'styles-demo-title',
                     description: 'styles-demo-description',
                     button: 'styles-demo-button styles-demo-button-hover'
@@ -159,13 +170,13 @@
         );
     }
 
-    function showVarsPropExample() {
+    function showStylesPropExample() {
         sileo.action(
             atSelected({
-                title: 'Vars prop applied',
-                description: 'These colors are controlled with options.vars and CSS variables only.',
+                title: 'Styles prop applied',
+                description: 'These colors are controlled with options.styles and CSS variables only.',
                 fill: '#f8fafc',
-                vars: {
+                styles: {
                     titleColor: '#0f172a',
                     descriptionColor: '#0f172a',
                     badgeColor: '#1d4ed8',
@@ -406,6 +417,14 @@
         <header class="topbar">
             <div class="brand">Sileo Svelte</div>
             <nav>
+                <button
+                    type="button"
+                    class="theme-toggle"
+                    onclick={toggleDarkMode}
+                    aria-pressed={darkMode}
+                >
+                    {darkMode ? 'Light' : 'Dark'}
+                </button>
                 <a
                     href="https://github.com/mielsense/sileo-svelte"
                     aria-label="GitHub">GitHub</a
@@ -487,11 +506,11 @@
                         >
                         <button
                             class="chip"
-                            onclick={showStylesPropExample}>Styles Prop</button
+                            onclick={showClassesPropExample}>Classes Prop</button
                         >
                         <button
                             class="chip"
-                            onclick={showVarsPropExample}>Vars Prop</button
+                            onclick={showStylesPropExample}>Styles Prop</button
                         >
                     </div>
                 </div>
@@ -545,11 +564,64 @@
 </main>
 
 <style>
+    :global(:root) {
+        --page-bg: #f6f6f7;
+        --page-fg: #0f1115;
+        --surface-border: #e8e8eb;
+        --brand-fg: #1f2329;
+        --link-fg: #8a9099;
+        --link-hover-fg: #5d6673;
+        --hero-title-fg: #0b0d10;
+        --hero-subtitle-fg: #949aa3;
+        --divider: #e9eaed;
+        --group-label-fg: #a0a6ae;
+        --chip-border: #ececef;
+        --chip-bg: #efeff1;
+        --chip-fg: #8e939a;
+        --chip-hover-bg: #ececef;
+        --chip-hover-fg: #5f6570;
+        --chip-active-bg: #101114;
+        --chip-active-border: #101114;
+        --chip-active-fg: #f7f8f9;
+        --danger-fg: #9a5f63;
+        --danger-hover-fg: #8f363d;
+        --danger-hover-bg: #f1e5e7;
+        --danger-hover-border: #ecd4d8;
+    }
+
+    :global(.dark) {
+        --page-bg: #0e1014;
+        --page-fg: #eef2f7;
+        --surface-border: #222833;
+        --brand-fg: #e5ebf3;
+        --link-fg: #9aa6b8;
+        --link-hover-fg: #d0d7e2;
+        --hero-title-fg: #f5f8fc;
+        --hero-subtitle-fg: #aab4c3;
+        --divider: #252b36;
+        --group-label-fg: #8692a4;
+        --chip-border: #2b3340;
+        --chip-bg: #171d26;
+        --chip-fg: #a7b2c2;
+        --chip-hover-bg: #1f2732;
+        --chip-hover-fg: #d2d9e3;
+        --chip-active-bg: #e8eef8;
+        --chip-active-border: #e8eef8;
+        --chip-active-fg: #0f1319;
+        --danger-fg: #df9da5;
+        --danger-hover-fg: #ffc6cd;
+        --danger-hover-bg: #3a1f24;
+        --danger-hover-border: #5a2f36;
+    }
+
     :global(body) {
         margin: 0;
-        background: #f6f6f7;
-        color: #0f1115;
+        background: var(--page-bg);
+        color: var(--page-fg);
         font-family: 'Plus Jakarta Sans', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+        transition:
+            background-color 180ms ease,
+            color 180ms ease;
     }
 
     main {
@@ -571,13 +643,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid #e8e8eb;
+        border-bottom: 1px solid var(--surface-border);
     }
 
     .brand {
         font-size: 0.95rem;
         font-weight: 700;
-        color: #1f2329;
+        color: var(--brand-fg);
     }
 
     nav {
@@ -586,14 +658,36 @@
     }
 
     nav a {
-        color: #8a9099;
+        color: var(--link-fg);
         text-decoration: none;
         font-size: 0.86rem;
         font-weight: 500;
     }
 
     nav a:hover {
-        color: #5d6673;
+        color: var(--link-hover-fg);
+    }
+
+    .theme-toggle {
+        appearance: none;
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        color: var(--chip-fg);
+        border-radius: 999px;
+        padding: 0.34rem 0.7rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        transition:
+            color 120ms ease,
+            background-color 120ms ease,
+            border-color 120ms ease;
+    }
+
+    .theme-toggle:hover {
+        color: var(--chip-hover-fg);
+        background: var(--chip-hover-bg);
     }
 
     .hero {
@@ -606,12 +700,12 @@
         font-size: clamp(2.1rem, 5vw, 3.6rem);
         line-height: 1;
         letter-spacing: -0.04em;
-        color: #0b0d10;
+        color: var(--hero-title-fg);
     }
 
     .hero p {
         margin: 0.85rem 0 0;
-        color: #949aa3;
+        color: var(--hero-subtitle-fg);
         font-size: 1.02rem;
     }
 
@@ -629,7 +723,7 @@
 
     hr {
         border: 0;
-        border-top: 1px solid #e9eaed;
+        border-top: 1px solid var(--divider);
         margin: 1.3rem auto;
         max-width: 620px;
     }
@@ -656,14 +750,14 @@
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #a0a6ae;
+        color: var(--group-label-fg);
     }
 
     .chip {
         appearance: none;
-        border: 1px solid #ececef;
-        background: #efeff1;
-        color: #8e939a;
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        color: var(--chip-fg);
         border-radius: 999px;
         padding: 0.5rem 0.82rem;
         font-size: 0.82rem;
@@ -677,24 +771,24 @@
     }
 
     .chip:hover {
-        color: #5f6570;
-        background: #ececef;
+        color: var(--chip-hover-fg);
+        background: var(--chip-hover-bg);
     }
 
     .chip.active {
-        background: #101114;
-        border-color: #101114;
-        color: #f7f8f9;
+        background: var(--chip-active-bg);
+        border-color: var(--chip-active-border);
+        color: var(--chip-active-fg);
     }
 
     .chip.danger {
-        color: #9a5f63;
+        color: var(--danger-fg);
     }
 
     .chip.danger:hover {
-        color: #8f363d;
-        background: #f1e5e7;
-        border-color: #ecd4d8;
+        color: var(--danger-hover-fg);
+        background: var(--danger-hover-bg);
+        border-color: var(--danger-hover-border);
     }
 
     :global(.styles-demo-title) {
