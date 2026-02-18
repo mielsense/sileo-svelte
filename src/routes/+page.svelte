@@ -565,21 +565,21 @@
 
 <style>
     :global(:root) {
-        --page-bg: #f6f6f7;
-        --page-fg: #0f1115;
-        --surface-border: #e8e8eb;
-        --brand-fg: #1f2329;
-        --link-fg: #8a9099;
-        --link-hover-fg: #5d6673;
-        --hero-title-fg: #0b0d10;
-        --hero-subtitle-fg: #949aa3;
-        --divider: #e9eaed;
-        --group-label-fg: #a0a6ae;
-        --chip-border: #ececef;
-        --chip-bg: #efeff1;
-        --chip-fg: #8e939a;
-        --chip-hover-bg: #ececef;
-        --chip-hover-fg: #5f6570;
+        --page-bg: #f5f5f4;
+        --page-fg: #121514;
+        --surface-border: #e5e7e5;
+        --brand-fg: #1f2523;
+        --link-fg: #838d89;
+        --link-hover-fg: #5b6561;
+        --hero-title-fg: #0d100f;
+        --hero-subtitle-fg: #8f9995;
+        --divider: #e7e9e7;
+        --group-label-fg: #9aa4a0;
+        --chip-border: #e8ebe9;
+        --chip-bg: #eeefee;
+        --chip-fg: #8a9490;
+        --chip-hover-bg: #e8ebe9;
+        --chip-hover-fg: #5d6763;
         --chip-active-bg: #101114;
         --chip-active-border: #101114;
         --chip-active-fg: #f7f8f9;
@@ -590,24 +590,24 @@
     }
 
     :global(.dark) {
-        --page-bg: #0e1014;
-        --page-fg: #eef2f7;
-        --surface-border: #222833;
-        --brand-fg: #e5ebf3;
-        --link-fg: #9aa6b8;
-        --link-hover-fg: #d0d7e2;
-        --hero-title-fg: #f5f8fc;
-        --hero-subtitle-fg: #aab4c3;
-        --divider: #252b36;
-        --group-label-fg: #8692a4;
-        --chip-border: #2b3340;
-        --chip-bg: #171d26;
-        --chip-fg: #a7b2c2;
-        --chip-hover-bg: #1f2732;
-        --chip-hover-fg: #d2d9e3;
-        --chip-active-bg: #e8eef8;
-        --chip-active-border: #e8eef8;
-        --chip-active-fg: #0f1319;
+        --page-bg: #0f1010;
+        --page-fg: #e7e9e8;
+        --surface-border: #1e2221;
+        --brand-fg: #f0f2f1;
+        --link-fg: #a7b0ad;
+        --link-hover-fg: #d4dbd8;
+        --hero-title-fg: #f3f5f4;
+        --hero-subtitle-fg: #a3aca9;
+        --divider: #202423;
+        --group-label-fg: #87918e;
+        --chip-border: #2a302e;
+        --chip-bg: #171b1a;
+        --chip-fg: #b0b8b5;
+        --chip-hover-bg: #1d2221;
+        --chip-hover-fg: #d7ddda;
+        --chip-active-bg: #e7ecea;
+        --chip-active-border: #e7ecea;
+        --chip-active-fg: #111413;
         --danger-fg: #df9da5;
         --danger-hover-fg: #ffc6cd;
         --danger-hover-bg: #3a1f24;
