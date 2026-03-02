@@ -667,19 +667,18 @@
                         {/if}
                     {/if}
                     {#if view.button}
-                        <a
-                            href="#!"
+                        <button
+                            type="button"
                             data-sileo-button
                             data-state={view.toastState}
                             class={view.classes?.button}
                             onclick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
                                 view.button?.onClick(id);
                             }}
                         >
                             {view.button.title}
-                        </a>
+                        </button>
                     {/if}
                 </div>
             </div>
