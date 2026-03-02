@@ -2,20 +2,20 @@
     import { resolve } from '$app/paths';
     import { sileo } from '$lib/index.js';
 
-    function fire(type: 'success' | 'error' | 'warning' | 'info' | 'default') {
+    function fire(type: 'success' | 'error' | 'warning' | 'info' | 'action') {
         const payload = {
             success: { title: 'Saved', description: 'Your preferences have been synced.' },
             error: { title: 'Payment failed', description: 'Your card was declined.' },
             warning: { title: 'Storage low', description: 'You are close to your plan limit.' },
             info: { title: 'Deployment ready', description: 'Version 1.0.0 is available.' },
-            default: { title: 'Heads up', description: 'This is a neutral toast.' }
+            action: { title: 'Heads up', description: 'This is a neutral toast.' }
         }[type];
 
         if (type === 'success') return sileo.success(payload);
         if (type === 'error') return sileo.error(payload);
         if (type === 'warning') return sileo.warning(payload);
         if (type === 'info') return sileo.info(payload);
-        return sileo.show(payload);
+        return sileo.action(payload);
     }
 
     async function firePromise() {
@@ -79,7 +79,7 @@
         >
         <button
             class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
-            onclick={() => fire('default')}>Action</button
+            onclick={() => fire('action')}>Action</button
         >
         <button
             class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"

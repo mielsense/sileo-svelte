@@ -1,5 +1,29 @@
 import type { Snippet } from 'svelte';
 
+export type SileoState = 'success' | 'loading' | 'error' | 'warning' | 'info' | 'action';
+
+export interface SileoClasses {
+    title?: string;
+    description?: string;
+    badge?: string;
+    button?: string;
+}
+
+export interface SileoStyles {
+    titleColor?: string;
+    descriptionColor?: string;
+    badgeColor?: string;
+    badgeBackground?: string;
+    buttonColor?: string;
+    buttonBackground?: string;
+    buttonHoverBackground?: string;
+}
+
+export interface SileoButton {
+    title: string;
+    onClick: (id: string) => void;
+}
+
 export const SILEO_POSITIONS = [
     'top-left',
     'top-center',
@@ -10,45 +34,17 @@ export const SILEO_POSITIONS = [
 ] as const;
 
 export type SileoPosition = (typeof SILEO_POSITIONS)[number];
-export type SileoState = 'success' | 'loading' | 'error' | 'warning' | 'info' | 'default';
 
-export interface SileoAction {
-    label: string;
-    onClick: (id: string) => void;
-}
-
-export interface SileoClassNames {
-    root?: string;
+export interface SileoOptions {
     title?: string;
-    description?: string;
-    badge?: string;
-    action?: string;
-}
-
-export interface SileoStyleVars {
-    background?: string;
-    foreground?: string;
-    mutedForeground?: string;
-    badgeBackground?: string;
-    badgeForeground?: string;
-    actionBackground?: string;
-    actionForeground?: string;
-    borderColor?: string;
-}
-
-export interface SileoToastOptions {
-    id?: string;
-    title?: string;
-    description?: string | Snippet;
-    state?: SileoState;
-    duration?: number | null;
+    description?: Snippet | string;
     position?: SileoPosition;
+    duration?: number | null;
     icon?: Snippet | null;
-    action?: SileoAction;
-    closeable?: boolean;
-    expanded?: boolean;
-    classNames?: SileoClassNames;
-    styles?: SileoStyleVars;
+    classes?: SileoClasses;
+    styles?: SileoStyles;
+    fill?: string;
+    roundness?: number;
+    autopilot?: boolean | { expand?: number; collapse?: number };
+    button?: SileoButton;
 }
-
-export type SileoInput = string | SileoToastOptions;

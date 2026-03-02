@@ -23,12 +23,12 @@
     }
 
     function actionToast() {
-        sileo.show(
+        sileo.action(
             at({
                 title: 'Action required',
                 description: 'Review deployment logs.',
-                action: {
-                    label: 'Dismiss',
+                button: {
+                    title: 'Dismiss',
                     onClick: (id: string) => sileo.dismiss(id)
                 }
             })
@@ -40,10 +40,15 @@
             at({
                 title: 'Custom styles',
                 description: 'Styling API lets you blend with your design system.',
-                classNames: {
-                    root: '!bg-zinc-100 !text-zinc-900',
-                    badge: '!bg-zinc-900 !text-zinc-100',
-                    description: '!text-zinc-700'
+                fill: '#f8fafc',
+                classes: {
+                    title: 'styles-demo-title',
+                    description: 'styles-demo-description',
+                    button: 'styles-demo-button'
+                },
+                styles: {
+                    badgeColor: '#111827',
+                    badgeBackground: '#e5e7eb'
                 }
             })
         );
