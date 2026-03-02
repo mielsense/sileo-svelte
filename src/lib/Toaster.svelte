@@ -14,8 +14,8 @@
     import { SILEO_POSITIONS, type SileoOptions, type SileoPosition } from './types.js';
 
     const THEME_FILLS = {
-        light: '#1a1a1a',
-        dark: '#f2f2f2'
+        light: '#f2f2f2',
+        dark: '#1a1a1a'
     } as const;
 
     /* -------------------------------- Constants ------------------------------- */
