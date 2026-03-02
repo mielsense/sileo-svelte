@@ -345,6 +345,7 @@
 /* --------------------------------- Button --------------------------------- */
 
 :where([data-sileo-button]) {
+    appearance: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -353,8 +354,11 @@
     margin-top: 0.75rem;
     border-radius: 9999px;
     border: 0;
+    font: inherit;
     font-size: 0.75rem;
     font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
     cursor: pointer;
     color: var(--sileo-button-color, var(--sileo-btn-color, currentColor));
     background-color: var(--sileo-button-bg, var(--sileo-btn-bg, transparent));
@@ -363,6 +367,11 @@
 
 :where([data-sileo-button]):hover {
     background-color: var(--sileo-button-bg-hover, var(--sileo-btn-bg-hover, transparent));
+}
+
+:where([data-sileo-button]):focus-visible {
+    outline: 2px solid var(--sileo-button-color, var(--sileo-btn-color, currentColor));
+    outline-offset: 2px;
 }
 
 :where([data-sileo-button][data-state]) {
