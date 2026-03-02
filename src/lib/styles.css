@@ -349,24 +349,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 1.75rem;
-    padding: 0 0.625rem;
+    width: 100%;
+    height: 2rem;
+    padding: 0 0.875rem;
     margin-top: 0.75rem;
     border-radius: 9999px;
-    border: 0;
+    border: 1px solid color-mix(in oklch, var(--sileo-btn-color, currentColor) 24%, transparent);
     font: inherit;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.78rem;
+    font-weight: 600;
     line-height: 1;
+    letter-spacing: 0.01em;
     text-decoration: none;
     cursor: pointer;
     color: var(--sileo-button-color, var(--sileo-btn-color, currentColor));
-    background-color: var(--sileo-button-bg, var(--sileo-btn-bg, transparent));
-    transition: background-color 150ms ease;
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklch, var(--sileo-button-bg, var(--sileo-btn-bg, transparent)) 84%, white 16%),
+        var(--sileo-button-bg, var(--sileo-btn-bg, transparent))
+    );
+    box-shadow: inset 0 1px 0 color-mix(in oklch, white 32%, transparent);
+    transition:
+        background-color 160ms ease,
+        transform 120ms ease;
 }
 
 :where([data-sileo-button]):hover {
     background-color: var(--sileo-button-bg-hover, var(--sileo-btn-bg-hover, transparent));
+    transform: translateY(-1px);
 }
 
 :where([data-sileo-button]):focus-visible {
@@ -398,7 +408,10 @@
 }
 
 :where([data-sileo-button][data-state='action']) {
-    --_c: var(--sileo-state-action);
+    --_c: oklch(0.62 0.2 258);
+    --sileo-btn-bg: color-mix(in oklch, var(--_c) 28%, black);
+    --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 40%, black);
+    --sileo-btn-color: color-mix(in oklch, white 92%, var(--_c) 8%);
 }
 
 /* -------------------------------- Animations ------------------------------ */
@@ -504,8 +517,8 @@
 /* -------------------------------- Theme ----------------------------------- */
 
 [data-sileo-viewport][data-theme='dark'] {
-    --sileo-title-color: rgba(17, 24, 39, 0.95);
-    --sileo-description-color: rgba(17, 24, 39, 0.75);
+    --sileo-title-color: rgba(255, 255, 255, 0.95);
+    --sileo-description-color: rgba(255, 255, 255, 0.8);
 }
 
 [data-sileo-viewport][data-theme='dark'] :where([data-sileo-button][data-state]) {
@@ -514,6 +527,6 @@
 }
 
 [data-sileo-viewport][data-theme='light'] {
-    --sileo-title-color: rgba(255, 255, 255, 0.95);
-    --sileo-description-color: rgba(255, 255, 255, 0.8);
+    --sileo-title-color: rgba(17, 24, 39, 0.95);
+    --sileo-description-color: rgba(17, 24, 39, 0.75);
 }

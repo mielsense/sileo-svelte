@@ -25,31 +25,12 @@
     function actionToast() {
         sileo.action(
             at({
-                title: 'Action required',
-                description: 'Review deployment logs.',
+                title: 'File uploaded',
+                description: 'Share this file with your team?',
                 autopilot: false,
                 button: {
-                    title: 'Dismiss',
+                    title: 'Share now',
                     onClick: (id: string) => sileo.dismiss(id)
-                }
-            })
-        );
-    }
-
-    function iconToast() {
-        sileo.info(
-            at({
-                title: 'Custom styles',
-                description: 'Styling API lets you blend with your design system.',
-                fill: '#f8fafc',
-                classes: {
-                    title: 'styles-demo-title',
-                    description: 'styles-demo-description',
-                    button: 'styles-demo-button'
-                },
-                styles: {
-                    badgeColor: '#111827',
-                    badgeBackground: '#e5e7eb'
                 }
             })
         );
@@ -72,15 +53,15 @@
 </script>
 
 <section class="flex min-h-[76vh] flex-col items-center justify-center text-center">
-    <h1 class="text-7xl font-bold tracking-tight text-zinc-100 md:text-8xl">Playground.</h1>
-    <p class="mt-6 text-lg text-zinc-400">Pick a position, click any type to fire it live.</p>
+    <h1 class="text-7xl font-bold tracking-tight md:text-8xl">Playground.</h1>
+    <p class="site-muted mt-6 text-lg">Pick a position, click any type to fire it live.</p>
 </section>
 
 <section class="pb-10 text-center">
     <div class="mb-6 flex flex-wrap items-center justify-center gap-2">
         {#each positions as pos (pos)}
             <button
-                class={`rounded-xl px-4 py-2 text-sm ${selected === pos ? 'bg-zinc-100 text-zinc-900' : 'bg-white/10 text-zinc-400'}`}
+                class={`site-pill ${selected === pos ? '!bg-[var(--site-fg)] !text-[var(--site-bg)]' : ''}`}
                 onclick={() => (selected = pos)}
             >
                 {pos}
@@ -88,35 +69,34 @@
         {/each}
     </div>
 
-    <div class="mx-auto mb-6 h-px w-full max-w-3xl bg-white/10"></div>
+    <div
+        class="mx-auto mb-6 h-px w-full max-w-3xl"
+        style="background:var(--site-border)"
+    ></div>
 
     <div class="flex flex-wrap items-center justify-center gap-2">
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={() => show('success')}>Success</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={() => show('error')}>Error</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={() => show('warning')}>Warning</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={() => show('info')}>Info</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={actionToast}>Action</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
-            onclick={iconToast}>Icon</button
-        >
-        <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="site-pill"
             onclick={promiseToast}>Promise</button
         >
     </div>

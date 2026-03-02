@@ -1,1 +1,41 @@
-/* Tailwind styles are provided by the CDN script in src/app.html for the docs/playground site. */
+:root {
+    --site-bg: #050505;
+    --site-fg: #f5f5f5;
+    --site-muted: #a1a1aa;
+    --site-border: color-mix(in oklab, var(--site-fg) 12%, transparent);
+    --site-card: color-mix(in oklab, var(--site-bg) 82%, var(--site-fg) 2%);
+    --site-soft: color-mix(in oklab, var(--site-fg) 8%, transparent);
+    --site-code: #070707;
+}
+
+.site-shell[data-theme='light'] {
+    --site-bg: #f5f5f5;
+    --site-fg: #0f172a;
+    --site-muted: #475569;
+    --site-border: color-mix(in oklab, var(--site-fg) 16%, transparent);
+    --site-card: #ffffff;
+    --site-soft: #e2e8f0;
+    --site-code: #0b1220;
+}
+
+.site-shell {
+    background: var(--site-bg);
+    color: var(--site-fg);
+}
+
+.site-muted {
+    color: var(--site-muted);
+}
+
+.site-card {
+    background: var(--site-card);
+    border: 1px solid var(--site-border);
+}
+
+.site-pill {
+    background: var(--site-soft);
+    color: var(--site-fg);
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}

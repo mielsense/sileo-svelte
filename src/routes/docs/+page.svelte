@@ -4,37 +4,71 @@
 
     const nav = [
         { id: 'kickstart', label: 'Kickstart' },
-        { id: 'api', label: 'API' },
-        { id: 'promise', label: 'Promise flows' },
-        { id: 'advanced', label: 'Advanced examples' },
+        { id: 'api', label: 'Core API' },
+        { id: 'options', label: 'Toast options' },
+        { id: 'advanced', label: 'Complex patterns' },
         { id: 'styling', label: 'Styling + Tailwind' },
-        { id: 'theming', label: 'Light/Dark theme' }
+        { id: 'theme', label: 'Theme support' }
     ];
 
-    function fire(kind: 'success' | 'error' | 'warning' | 'info') {
+    const installCode = `npm install sileo-svelte motion`;
+    const quickSetupCode = `import { Toaster, sileo } from 'sileo-svelte';
+import 'sileo-svelte/styles.css';
+
+<Toaster position="top-right" theme="system" />
+
+sileo.success({ title: 'Saved', description: 'Project synced.' });`;
+    const apiCode = `sileo.show(input)
+sileo.success(input)
+sileo.error(input)
+sileo.warning(input)
+sileo.info(input)
+sileo.action(input)
+sileo.loading(input)
+sileo.promise(promise, options)
+sileo.update(id, options)
+sileo.dismiss(id)
+sileo.close(id)
+sileo.clear(position?)
+sileo.with(defaults)`;
+    const optionsCode = `type SileoOptions = {
+  title?: string;
+  description?: string | Snippet;
+  position?: 'top-left' | 'top-center' | ...;
+  duration?: number | null;
+  icon?: Snippet | null;
+  fill?: string;
+  roundness?: number;
+  classes?: { title?: string; description?: string; badge?: string; button?: string };
+  styles?: { titleColor?: string; descriptionColor?: string; badgeColor?: string; ... };
+  button?: { title: string; onClick: (id: string) => void };
+  autopilot?: boolean | { expand?: number; collapse?: number };
+};`;
+
+    function show(kind: 'success' | 'error' | 'warning' | 'info') {
         sileo[kind]({ title: `${kind[0].toUpperCase()}${kind.slice(1)} toast`, description: 'Preview from docs.' });
     }
 
     function complexAction() {
         sileo.action({
-            title: 'Deployment blocked',
-            description: 'Review failed checks before continuing.',
+            title: 'File uploaded',
+            description: 'Share it with your team?',
+            autopilot: false,
             button: {
-                title: 'Open checks',
+                title: 'Share now',
                 onClick: (id) => {
                     sileo.update(id, {
                         state: 'loading',
-                        title: 'Opening checks…',
-                        description: 'Fetching CI logs…',
+                        title: 'Sharing…',
+                        description: 'Creating share link…',
                         duration: null
                     });
-
                     setTimeout(() => {
                         sileo.update(id, {
                             state: 'success',
-                            title: 'Checks loaded',
-                            description: 'You can safely deploy now.',
-                            duration: 4500
+                            title: 'Shared',
+                            description: 'Link copied to clipboard.',
+                            duration: 4200
                         });
                     }, 900);
                 }
@@ -49,23 +83,17 @@
                 return { release: 'v1.0.0' };
             },
             {
-                loading: { title: 'Shipping release…' },
-                success: (result) => ({
-                    title: `${result.release} deployed`,
-                    description: 'Traffic switched to new release.'
-                }),
-                error: (err) => ({
-                    title: 'Deploy failed',
-                    description: err instanceof Error ? err.message : 'Unknown error'
-                })
+                loading: { title: 'Deploying…' },
+                success: (data) => ({ title: `${data.release} live`, description: 'Traffic switched successfully.' }),
+                error: () => ({ title: 'Deploy failed', description: 'Rollback initiated.' })
             }
         );
     }
 
-    function styledTailwind() {
+    function stylingDemo() {
         sileo.info({
-            title: 'Tailwind style injection',
-            description: 'Classes and style vars can be combined.',
+            title: 'Tailwind-compatible styling',
+            description: 'Use classes + style vars together.',
             fill: '#f8fafc',
             classes: {
                 title: '!text-slate-900 font-semibold',
@@ -77,28 +105,22 @@
                 badgeColor: '#0f172a'
             },
             button: {
-                title: 'Got it',
+                title: 'Close',
                 onClick: (id) => sileo.dismiss(id)
             }
         });
     }
 </script>
 
-<section class="grid gap-10 py-10 md:grid-cols-[260px_1fr]">
-    <aside class="sticky top-8 h-fit space-y-7 text-sm text-zinc-500">
-        <div>
-            <p class="mb-2 text-xs uppercase tracking-[0.2em]">Documentation</p>
-            <div class="space-y-1">
-                {#each nav as item (item.id)}
-                    <a
-                        class="block rounded-lg px-3 py-2 transition hover:bg-black/5 hover:text-zinc-900 dark:hover:bg-white/10 dark:hover:text-zinc-100"
-                        href={`#${item.id}`}
-                    >
-                        {item.label}
-                    </a>
-                {/each}
-            </div>
-        </div>
+<section class="grid gap-10 py-10 md:grid-cols-[240px_1fr]">
+    <aside class="site-muted sticky top-8 h-fit space-y-3 text-sm">
+        <p class="text-xs uppercase tracking-[0.2em]">Docs</p>
+        {#each nav as item (item.id)}
+            <a
+                class="block rounded-lg px-3 py-2 transition hover:opacity-100 opacity-80"
+                href={`#${item.id}`}>{item.label}</a
+            >
+        {/each}
     </aside>
 
     <article class="space-y-12">
@@ -107,18 +129,19 @@
             class="scroll-mt-24 space-y-4"
         >
             <h1 class="text-4xl font-semibold">Getting Started</h1>
-            <p class="max-w-3xl text-zinc-600 dark:text-zinc-400">
-                Sileo is a gooey SVG toast component for Svelte. It supports smooth morphing updates, promise flows,
-                custom actions, scoped defaults, and theme-friendly styling hooks.
+            <p class="site-muted max-w-3xl">
+                Sileo is an SVG morphing toast component for Svelte with spring-like transitions and advanced update
+                flow. The docs below are complete enough to use in production without opening the README.
             </p>
             <CodeBlock
                 title="Install"
-                code="npm install sileo-svelte motion"
+                language="bash"
+                code={installCode}
             />
             <CodeBlock
                 title="Quick setup"
                 language="svelte"
-                code={`import { Toaster, sileo } from 'sileo-svelte';\nimport 'sileo-svelte/styles.css';\n\n<Toaster position="top-right" />\n\nsileo.success({ title: 'Saved', description: 'Project synced.' });`}
+                code={quickSetupCode}
             />
         </section>
 
@@ -126,67 +149,75 @@
             id="api"
             class="scroll-mt-24 space-y-4"
         >
-            <h2 class="text-2xl font-semibold">API</h2>
+            <h2 class="text-2xl font-semibold">Core API</h2>
             <CodeBlock
-                title="Methods"
+                title="sileo methods"
                 language="ts"
-                code="sileo.show(input)\nsileo.success(input)\nsileo.error(input)\nsileo.warning(input)\nsileo.info(input)\nsileo.action(input)\nsileo.loading(input)\nsileo.update(id, next)\nsileo.dismiss(id)\nsileo.close(id)\nsileo.clear(position?)\nsileo.promise(promise, options)\nsileo.with(defaults)"
+                code={apiCode}
             />
-            <div
-                class="rounded-xl border border-black/10 bg-black/[0.03] p-5 dark:border-white/10 dark:bg-white/[0.03]"
-            >
-                <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-400">Live preview:</p>
+            <div class="site-card rounded-xl p-5">
+                <p class="site-muted mb-3 text-sm">Live preview:</p>
                 <div class="flex flex-wrap gap-2">
                     <button
-                        class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                        onclick={() => fire('success')}>Success</button
+                        class="site-pill"
+                        onclick={() => show('success')}>Success</button
                     >
                     <button
-                        class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                        onclick={() => fire('error')}>Error</button
+                        class="site-pill"
+                        onclick={() => show('error')}>Error</button
                     >
                     <button
-                        class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                        onclick={() => fire('warning')}>Warning</button
+                        class="site-pill"
+                        onclick={() => show('warning')}>Warning</button
                     >
                     <button
-                        class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                        onclick={() => fire('info')}>Info</button
+                        class="site-pill"
+                        onclick={() => show('info')}>Info</button
                     >
                 </div>
             </div>
         </section>
 
         <section
-            id="promise"
+            id="options"
             class="scroll-mt-24 space-y-4"
         >
-            <h2 class="text-2xl font-semibold">Promise flows</h2>
+            <h2 class="text-2xl font-semibold">Toast options</h2>
+            <p class="site-muted">
+                Every method accepts a full options object. Use `autopilot` and `button` for richer interaction.
+            </p>
             <CodeBlock
-                title="Morph loading → success/error"
+                title="SileoOptions"
                 language="ts"
-                code={`await sileo.promise(fetchData(), {\n  loading: { title: 'Loading…' },\n  success: (data) => ({ title: 'Done', description: data.message }),\n  error: (err) => ({ title: 'Failed', description: String(err) })\n});`}
+                code={optionsCode}
             />
-            <button
-                class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                onclick={promiseFlow}>Run promise demo</button
-            >
         </section>
 
         <section
             id="advanced"
             class="scroll-mt-24 space-y-4"
         >
-            <h2 class="text-2xl font-semibold">Advanced examples</h2>
+            <h2 class="text-2xl font-semibold">Complex patterns</h2>
+            <p class="site-muted">Action toasts can morph through states while preserving id and placement.</p>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    class="site-pill"
+                    onclick={complexAction}>Run action flow</button
+                >
+                <button
+                    class="site-pill"
+                    onclick={promiseFlow}>Run promise flow</button
+                >
+            </div>
             <CodeBlock
-                title="Action toast with in-place updates"
+                title="Action flow"
                 language="ts"
-                code={`const id = sileo.action({\n  title: 'Deployment blocked',\n  description: 'Review checks',\n  button: {\n    title: 'Open checks',\n    onClick: (id) => sileo.update(id, { state: 'loading', title: 'Opening…' })\n  }\n});`}
+                code={`const id = sileo.action({
+  title: 'File uploaded',
+  autopilot: false,
+  button: { title: 'Share now', onClick: (id) => sileo.update(id, { state: 'loading' }) }
+});`}
             />
-            <button
-                class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                onclick={complexAction}>Run action demo</button
-            >
         </section>
 
         <section
@@ -194,25 +225,32 @@
             class="scroll-mt-24 space-y-4"
         >
             <h2 class="text-2xl font-semibold">Styling + Tailwind</h2>
-            <CodeBlock
-                title="Tailwind classes + style vars"
-                language="ts"
-                code={`sileo.info({\n  title: 'Custom design',\n  classes: { title: '!text-slate-900', description: '!text-slate-700' },\n  styles: { badgeBackground: '#e2e8f0', badgeColor: '#0f172a' },\n  button: { title: 'Close', onClick: (id) => sileo.dismiss(id) }\n});`}
-            />
+            <p class="site-muted">
+                Library itself is CSS-based. Consumers can still pass Tailwind utility classes through `classes`.
+            </p>
             <button
-                class="rounded-xl bg-black/10 px-4 py-2 text-sm dark:bg-white/10"
-                onclick={styledTailwind}>Run styling demo</button
+                class="site-pill"
+                onclick={stylingDemo}>Run styling demo</button
             >
+            <CodeBlock
+                title="Tailwind usage"
+                language="ts"
+                code={`sileo.info({
+  classes: { title: '!text-slate-900', description: '!text-slate-700' },
+  styles: { badgeBackground: '#e2e8f0', badgeColor: '#0f172a' },
+  button: { title: 'Close', onClick: (id) => sileo.dismiss(id) }
+});`}
+            />
         </section>
 
         <section
-            id="theming"
+            id="theme"
             class="scroll-mt-24 space-y-4"
         >
-            <h2 class="text-2xl font-semibold">Light/Dark mode</h2>
-            <p class="text-zinc-600 dark:text-zinc-400">
-                Use the theme toggle in the top-right nav (`dark`/`light`/`system`). The docs shell and Toaster theme
-                both switch so toast fills adapt for readability.
+            <h2 class="text-2xl font-semibold">Theme support</h2>
+            <p class="site-muted">
+                Top-right toggle controls `dark / light / system`. It updates docs palette and toaster fill defaults so
+                both docs and toasts stay readable.
             </p>
         </section>
     </article>

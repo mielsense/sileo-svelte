@@ -12,11 +12,7 @@
     let themeMode = $state<ThemeMode>('system');
     let resolvedTheme = $state<'light' | 'dark'>('dark');
 
-    const nextTheme: Record<ThemeMode, ThemeMode> = {
-        dark: 'light',
-        light: 'system',
-        system: 'dark'
-    };
+    const nextTheme: Record<ThemeMode, ThemeMode> = { dark: 'light', light: 'system', system: 'dark' };
 
     function applyTheme(mode: ThemeMode) {
         themeMode = mode;
@@ -25,70 +21,65 @@
 
     $effect(() => {
         const saved = localStorage.getItem('sileo-docs-theme') as ThemeMode | null;
-        if (saved === 'light' || saved === 'dark' || saved === 'system') {
-            themeMode = saved;
-        }
+        if (saved === 'light' || saved === 'dark' || saved === 'system') themeMode = saved;
 
         const mq = window.matchMedia('(prefers-color-scheme: dark)');
         const sync = () => {
             resolvedTheme = themeMode === 'system' ? (mq.matches ? 'dark' : 'light') : themeMode;
         };
-
         sync();
         mq.addEventListener('change', sync);
-
         return () => mq.removeEventListener('change', sync);
     });
 </script>
 
-<div class={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-[#050505] text-zinc-100' : 'bg-zinc-100 text-zinc-900'}`}>
+<div
+    class="site-shell min-h-screen"
+    data-theme={resolvedTheme}
+>
     <div class="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6">
         <header
-            class={`flex items-center justify-between py-6 text-sm ${resolvedTheme === 'dark' ? 'border-b border-white/10' : 'border-b border-black/10'}`}
+            class="flex items-center justify-between border-b py-6 text-sm"
+            style="border-color:var(--site-border)"
         >
             <a
                 href={resolve('/')}
                 class="font-semibold tracking-tight">Sileo</a
             >
-            <nav class={`flex items-center gap-7 ${resolvedTheme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+            <nav class="site-muted flex items-center gap-7">
                 <a
                     href="https://github.com/mielsense/sileo-svelte"
                     target="_blank"
                     rel="noreferrer"
-                    class="transition hover:text-current"
+                    class="transition hover:opacity-100 opacity-85">GitHub</a
                 >
-                    GitHub
-                </a>
                 <a
                     href={resolve('/docs')}
-                    class={`transition hover:text-current ${$page.url.pathname === '/docs' ? 'text-current' : ''}`}
+                    class={`transition hover:opacity-100 ${$page.url.pathname === '/docs' ? 'opacity-100' : 'opacity-85'}`}
+                    >Docs</a
                 >
-                    Docs
-                </a>
                 <a
                     href={resolve('/play')}
-                    class={`transition hover:text-current ${$page.url.pathname === '/play' ? 'text-current' : ''}`}
+                    class={`transition hover:opacity-100 ${$page.url.pathname === '/play' ? 'opacity-100' : 'opacity-85'}`}
+                    >Playground</a
                 >
-                    Playground
-                </a>
                 <button
-                    class={`rounded-lg px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-white/10 text-zinc-200' : 'bg-black/10 text-zinc-700'}`}
-                    onclick={() => applyTheme(nextTheme[themeMode])}
+                    class="site-pill !px-2 !py-1"
+                    onclick={() => applyTheme(nextTheme[themeMode])}>{themeMode}</button
                 >
-                    {themeMode}
-                </button>
             </nav>
         </header>
 
         <div class="flex-1">{@render children()}</div>
 
         <footer
-            class={`mt-10 flex items-center justify-between py-6 text-sm ${resolvedTheme === 'dark' ? 'border-t border-white/10 text-zinc-500' : 'border-t border-black/10 text-zinc-600'}`}
+            class="site-muted mt-10 flex items-center justify-between border-t py-6 text-sm"
+            style="border-color:var(--site-border)"
         >
             <p>Sileo — MIT License</p>
             <a
                 href={resolve('/play')}
-                class="transition hover:text-current">Playground →</a
+                class="transition hover:opacity-100 opacity-85">Playground →</a
             >
         </footer>
     </div>

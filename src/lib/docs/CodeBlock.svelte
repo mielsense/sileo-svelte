@@ -5,8 +5,7 @@
         code: string;
     }
 
-    let { title, language = 'bash', code }: Props = $props();
-
+    let { title, language = 'ts', code }: Props = $props();
     let copied = $state(false);
 
     async function copy() {
@@ -16,17 +15,21 @@
     }
 </script>
 
-<div class="overflow-hidden rounded-xl border border-black/10 bg-zinc-950/95 dark:border-white/10 dark:bg-black/40">
+<div class="site-card overflow-hidden rounded-xl">
     <div
-        class="flex items-center justify-between border-b border-black/10 px-3 py-2 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400"
+        class="flex items-center justify-between border-b px-3 py-2 text-xs"
+        style="border-color:var(--site-border)"
     >
-        <span>{title ?? language}</span>
+        <div class="site-muted flex items-center gap-2">
+            <span>{title ?? 'Code'}</span>
+            <span class="rounded bg-black/10 px-1.5 py-0.5 uppercase dark:bg-white/10">{language}</span>
+        </div>
         <button
-            class="rounded-md bg-zinc-800 px-2 py-1 text-zinc-200 dark:bg-white/10"
-            onclick={copy}
+            class="site-pill !rounded-md !px-2 !py-1 text-xs"
+            onclick={copy}>{copied ? 'Copied' : 'Copy'}</button
         >
-            {copied ? 'Copied' : 'Copy'}
-        </button>
     </div>
-    <pre class="overflow-x-auto p-4 text-sm text-zinc-100"><code>{code}</code></pre>
+    <pre
+        class="overflow-x-auto p-4 text-sm leading-6"
+        style="background:var(--site-code);color:#e5e7eb"><code>{code}</code></pre>
 </div>
