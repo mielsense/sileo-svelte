@@ -27,6 +27,7 @@
             at({
                 title: 'Action required',
                 description: 'Review deployment logs.',
+                autopilot: false,
                 button: {
                     title: 'Dismiss',
                     onClick: (id: string) => sileo.dismiss(id)

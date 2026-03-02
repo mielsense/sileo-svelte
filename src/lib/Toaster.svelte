@@ -13,6 +13,11 @@
     } from './store.svelte.js';
     import { SILEO_POSITIONS, type SileoOptions, type SileoPosition } from './types.js';
 
+    const THEME_FILLS = {
+        light: '#1a1a1a',
+        dark: '#f2f2f2'
+    } as const;
+
     /* -------------------------------- Constants ------------------------------- */
 
     const DEFAULT_DURATION = 6000;
@@ -25,9 +30,12 @@
         position?: SileoPosition;
         offset?: SileoOffsetValue | SileoOffsetConfig;
         options?: Partial<SileoOptions>;
+        theme?: 'light' | 'dark' | 'system';
     }
 
-    let { children, position = 'top-right', offset, options }: Props = $props();
+    let { children, position = 'top-right', offset, options, theme }: Props = $props();
+
+    let resolvedTheme = $state<'light' | 'dark'>('light');
 
     /* ------------------------------- Latest ID -------------------------------- */
 
@@ -54,6 +62,20 @@
 
     $effect(() => {
         store.globalOptions = options;
+    });
+
+    $effect(() => {
+        const selected = theme;
+        if (!selected || selected === 'system') {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            const apply = () => {
+                resolvedTheme = mq.matches ? 'dark' : 'light';
+            };
+            apply();
+            mq.addEventListener('change', apply);
+            return () => mq.removeEventListener('change', apply);
+        }
+        resolvedTheme = selected;
     });
 
     /* --------------------------------- Helpers -------------------------------- */
@@ -187,6 +209,7 @@
             data-sileo-viewport
             data-position={pos}
             aria-live="polite"
+            data-theme={theme ? resolvedTheme : undefined}
             style={getViewportStyle(pos)}
         >
             {#each items as item (item.id)}
@@ -198,7 +221,7 @@
                     position={pill}
                     expand={dir}
                     icon={item.icon}
-                    fill={item.fill}
+                    fill={item.fill ?? (theme ? THEME_FILLS[resolvedTheme] : undefined)}
                     classes={item.classes}
                     styles={item.styles}
                     button={item.button}

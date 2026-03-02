@@ -37,7 +37,7 @@
         1
     );
 
-    --sileo-duration: 600ms;
+    --sileo-duration: 520ms;
     --sileo-height: 40px;
     --sileo-width: 350px;
 
@@ -499,4 +499,21 @@
         animation-iteration-count: 1;
         transition-duration: 0.01ms;
     }
+}
+
+/* -------------------------------- Theme ----------------------------------- */
+
+[data-sileo-viewport][data-theme='dark'] {
+    --sileo-title-color: rgba(17, 24, 39, 0.95);
+    --sileo-description-color: rgba(17, 24, 39, 0.75);
+}
+
+[data-sileo-viewport][data-theme='dark'] :where([data-sileo-button][data-state]) {
+    --sileo-btn-bg: color-mix(in oklch, var(--_c) 18%, white);
+    --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 28%, white);
+}
+
+[data-sileo-viewport][data-theme='light'] {
+    --sileo-title-color: rgba(255, 255, 255, 0.95);
+    --sileo-description-color: rgba(255, 255, 255, 0.8);
 }

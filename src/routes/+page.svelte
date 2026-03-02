@@ -37,16 +37,18 @@
 </script>
 
 <section class="flex min-h-[76vh] flex-col items-center justify-center text-center">
-    <h1 class="text-7xl font-bold tracking-tight text-zinc-100 md:text-8xl">Sileo.</h1>
-    <p class="mt-6 max-w-xl text-lg text-zinc-400">
+    <h1 class="text-7xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-8xl">Sileo.</h1>
+    <p class="mt-6 max-w-xl text-lg text-zinc-600 dark:text-zinc-600 dark:text-zinc-400">
         An opinionated toast component for Svelte. Real Motion animations, smooth state morphing, and a minimal API.
     </p>
 
-    <div class="mt-10 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-zinc-200">
+    <div
+        class="mt-10 rounded-xl border border-white/10 bg-black/5 px-5 py-3 text-sm text-zinc-700 dark:bg-white/5 dark:text-zinc-200"
+    >
         npm i sileo-svelte motion
     </div>
 
-    <div class="mt-7 flex gap-6 text-sm text-zinc-400">
+    <div class="mt-7 flex gap-6 text-sm text-zinc-600 dark:text-zinc-600 dark:text-zinc-400">
         <a
             href={resolve('/play')}
             class="hover:text-zinc-200">Playground →</a
@@ -62,27 +64,27 @@
     <p class="mb-4 text-xs uppercase tracking-[0.25em] text-zinc-500">Try it</p>
     <div class="flex flex-wrap items-center justify-center gap-2">
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={() => fire('success')}>Success</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={() => fire('error')}>Error</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={() => fire('warning')}>Warning</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={() => fire('info')}>Info</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={() => fire('action')}>Action</button
         >
         <button
-            class="rounded-xl bg-white/10 px-4 py-2 text-sm text-zinc-300"
+            class="rounded-xl bg-black/10 px-4 py-2 text-sm text-zinc-700 dark:bg-white/10 dark:text-zinc-300"
             onclick={firePromise}>Promise</button
         >
     </div>

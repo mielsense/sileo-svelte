@@ -155,7 +155,9 @@
     const hasDesc = $derived(view ? Boolean(view.description) || Boolean(view.button) : false);
     const isLoading = $derived(view?.toastState === 'loading');
     const open = $derived(hasDesc && isExpanded && !isLoading);
-    const allowExpand = $derived(isLoading ? false : (canExpand ?? (!interruptKey || interruptKey === id)));
+    const allowExpand = $derived(
+        view?.button ? true : isLoading ? false : (canExpand ?? (!interruptKey || interruptKey === id))
+    );
 
     const headerKey = $derived(`${view?.toastState}-${view?.title}`);
     const filterId = $derived(`sileo-gooey-${id}`);
@@ -502,7 +504,7 @@
             const ctrl = animate(
                 el,
                 { opacity: [1, 0], transform: ['translateY(0px) scale(1)', 'translateY(-8px) scale(0.98)'] },
-                { duration: 0.22, easing: 'ease-in' }
+                { type: 'spring', stiffness: 280, damping: 28, mass: 0.6 }
             );
             return () => ctrl.cancel();
         }
@@ -510,8 +512,21 @@
         const ctrl = animate(
             el,
             { opacity: [0, 1], transform: ['translateY(12px) scale(0.98)', 'translateY(0px) scale(1)'] },
+            { type: 'spring', stiffness: 320, damping: 30, mass: 0.55 }
+        );
+        return () => ctrl.cancel();
+    });
+
+    $effect(() => {
+        const content = contentEl;
+        if (!content || !ready) return;
+
+        const ctrl = animate(
+            content,
+            { opacity: [open ? 0.5 : 1, open ? 1 : 0.55], y: [open ? 6 : 0, open ? 0 : -3] },
             { duration: 0.28, easing: 'ease-out' }
         );
+
         return () => ctrl.cancel();
     });
 
