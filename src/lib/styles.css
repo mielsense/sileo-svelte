@@ -408,10 +408,13 @@
 }
 
 :where([data-sileo-button][data-state='action']) {
-    --_c: oklch(0.62 0.2 258);
-    --sileo-btn-bg: color-mix(in oklch, var(--_c) 28%, black);
-    --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 40%, black);
-    --sileo-btn-color: color-mix(in oklch, white 92%, var(--_c) 8%);
+    --_c: #3b82f6;
+    --sileo-btn-color: #ffffff;
+    --sileo-btn-bg: #3b82f6;
+    --sileo-btn-bg-hover: #2563eb;
+    border-color: #1d4ed8;
+    box-shadow: none;
+    background: var(--sileo-btn-bg);
 }
 
 /* -------------------------------- Animations ------------------------------ */
@@ -519,11 +522,6 @@
 [data-sileo-viewport][data-theme='dark'] {
     --sileo-title-color: rgba(255, 255, 255, 0.95);
     --sileo-description-color: rgba(255, 255, 255, 0.8);
-}
-
-[data-sileo-viewport][data-theme='dark'] :where([data-sileo-button][data-state]) {
-    --sileo-btn-bg: color-mix(in oklch, var(--_c) 18%, white);
-    --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 28%, white);
 }
 
 [data-sileo-viewport][data-theme='light'] {
