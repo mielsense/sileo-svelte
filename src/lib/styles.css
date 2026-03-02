@@ -1,502 +1,133 @@
-/* -------------------------------- Variables ------------------------------- */
-
 :root {
-    --sileo-spring-easing: linear(
-        0,
-        0.002 0.6%,
-        0.007 1.2%,
-        0.015 1.8%,
-        0.026 2.4%,
-        0.041 3.1%,
-        0.06 3.8%,
-        0.108 5.3%,
-        0.157 6.6%,
-        0.214 8%,
-        0.467 13.7%,
-        0.577 16.3%,
-        0.631 17.7%,
-        0.682 19.1%,
-        0.73 20.5%,
-        0.771 21.8%,
-        0.808 23.1%,
-        0.844 24.5%,
-        0.874 25.8%,
-        0.903 27.2%,
-        0.928 28.6%,
-        0.952 30.1%,
-        0.972 31.6%,
-        0.988 33.1%,
-        1.01 35.7%,
-        1.025 38.5%,
-        1.034 41.6%,
-        1.038 45%,
-        1.035 50.1%,
-        1.012 64.2%,
-        1.003 73%,
-        0.999 83.7%,
-        1
-    );
-
-    --sileo-duration: 600ms;
-    --sileo-height: 40px;
-    --sileo-width: 350px;
-
-    --sileo-state-success: oklch(0.723 0.219 142.136);
-    --sileo-state-loading: oklch(0.75 0 0);
-    --sileo-state-error: oklch(0.637 0.237 25.331);
-    --sileo-state-warning: oklch(0.795 0.184 86.047);
-    --sileo-state-info: oklch(0.685 0.169 237.323);
-    --sileo-state-action: oklch(0.623 0.214 259.815);
+    --sileo-bg: #0f172a;
+    --sileo-fg: #f8fafc;
+    --sileo-muted: #cbd5e1;
+    --sileo-border: color-mix(in oklab, #ffffff 18%, transparent);
+    --sileo-badge-bg: color-mix(in oklab, #ffffff 15%, transparent);
+    --sileo-badge-fg: #f8fafc;
+    --sileo-action-bg: #f8fafc;
+    --sileo-action-fg: #020617;
 }
 
-/* ---------------------------------- Toast --------------------------------- */
-
-[data-sileo-toast] {
-    position: relative;
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: none;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    font: inherit;
-    width: var(--sileo-width);
-    height: var(--_h, var(--sileo-height));
-    opacity: 0;
-    transform: translateZ(0) scale(0.95);
-    transform-origin: center;
-    contain: layout style;
-    overflow: visible;
-}
-
-[data-sileo-toast][data-state='loading'] {
-    cursor: default;
-}
-
-[data-sileo-toast][data-ready='true'] {
-    opacity: 1;
-    transform: translateZ(0) scale(1);
-    transition:
-        transform calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        opacity calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        margin-bottom calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        margin-top calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        height var(--sileo-duration) var(--sileo-spring-easing);
-}
-
-/* Entry animation direction */
-[data-sileo-viewport][data-position^='top'] [data-sileo-toast]:not([data-ready='true']) {
-    transform: translateY(-6px) scale(0.95);
-}
-
-[data-sileo-viewport][data-position^='bottom'] [data-sileo-toast]:not([data-ready='true']) {
-    transform: translateY(6px) scale(0.95);
-}
-
-/* Exit */
-[data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    opacity: 0;
-    pointer-events: none;
-}
-
-[data-sileo-viewport][data-position^='top'] [data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    transform: translateY(-6px) scale(0.95);
-}
-
-[data-sileo-viewport][data-position^='bottom'] [data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    transform: translateY(6px) scale(0.95);
-}
-
-/* ------------------------------- SVG Canvas ------------------------------- */
-
-[data-sileo-canvas] {
-    position: absolute;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-    transform: translateZ(0);
-    contain: layout style;
-    overflow: visible;
-}
-
-[data-sileo-canvas][data-edge='top'] {
-    bottom: 0;
-    transform: scaleY(-1) translateZ(0);
-}
-
-[data-sileo-canvas][data-edge='bottom'] {
-    top: 0;
-}
-
-[data-sileo-svg] {
-    overflow: visible;
-}
-
-/* --------------------------------- Shapes --------------------------------- */
-
-[data-sileo-pill],
-[data-sileo-body] {
-    transform-box: fill-box;
-    transform-origin: 50% 0%;
-}
-
-[data-sileo-pill] {
-    transform: scaleY(var(--_sy, 1));
-    width: var(--_pw);
-    height: var(--_ph);
-}
-
-[data-sileo-body] {
-    transform: scaleY(var(--_by, 0));
-    opacity: var(--_by, 0);
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-pill] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        width var(--sileo-duration) var(--sileo-spring-easing),
-        x var(--sileo-duration) var(--sileo-spring-easing);
-}
-
-[data-sileo-toast][data-ready='true'][data-expanded='true'] [data-sileo-pill] {
-    transition-delay: calc(var(--sileo-duration) * 0.08);
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-body] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        opacity var(--sileo-duration) var(--sileo-spring-easing);
-}
-
-/* --------------------------------- Header --------------------------------- */
-
-[data-sileo-header] {
-    position: absolute;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    height: var(--sileo-height);
-    box-sizing: border-box;
-    overflow: hidden;
-    left: var(--_px, 0px);
-    transform: var(--_ht);
-    max-width: var(--_pw);
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-header] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        left var(--sileo-duration) var(--sileo-spring-easing),
-        max-width var(--sileo-duration) var(--sileo-spring-easing);
-}
-
-[data-sileo-header][data-edge='top'] {
-    bottom: 0;
-}
-
-[data-sileo-header][data-edge='bottom'] {
-    top: 0;
-}
-
-/* Header inner morphing */
-[data-sileo-header-stack] {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    height: 100%;
-}
-
-[data-sileo-header-inner] {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
-    opacity: 1;
-    filter: blur(0px);
-    will-change: opacity, filter;
-}
-
-[data-sileo-header-inner][data-layer='current'] {
-    animation: sileo-header-enter var(--sileo-duration) var(--sileo-spring-easing) both;
-}
-
-[data-sileo-header-inner][data-layer='prev'] {
-    position: absolute;
-    left: 0;
-    top: 0;
-    pointer-events: none;
-}
-
-[data-sileo-header-inner][data-exiting='true'] {
-    animation: sileo-header-exit 300ms ease forwards;
-}
-
-/* ---------------------------------- Badge --------------------------------- */
-
-:where([data-sileo-badge]) {
-    display: flex;
-    height: 24px;
-    width: 24px;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-    box-sizing: border-box;
-    border-radius: 9999px;
-    color: var(--sileo-badge-color, var(--sileo-tone, currentColor));
-    background-color: var(--sileo-badge-bg, var(--sileo-tone-bg, transparent));
-}
-
-/* ---------------------------------- Title --------------------------------- */
-
-:where([data-sileo-title]) {
-    font-size: 0.825rem;
-    line-height: 1rem;
-    font-weight: 500;
-    text-transform: capitalize;
-    color: var(--sileo-title-color, var(--sileo-tone, currentColor));
-}
-
-/* ------------------------------ State Colors ------------------------------ */
-
-:where([data-sileo-badge][data-state], [data-sileo-title][data-state]) {
-    --_c: var(--sileo-state-success);
-    --sileo-tone: var(--_c);
-    --sileo-tone-bg: color-mix(in oklch, var(--_c) 20%, transparent);
-}
-
-:where([data-sileo-badge][data-state='loading'], [data-sileo-title][data-state='loading']) {
-    --_c: var(--sileo-state-loading);
-}
-
-:where([data-sileo-badge][data-state='error'], [data-sileo-title][data-state='error']) {
-    --_c: var(--sileo-state-error);
-}
-
-:where([data-sileo-badge][data-state='warning'], [data-sileo-title][data-state='warning']) {
-    --_c: var(--sileo-state-warning);
-}
-
-:where([data-sileo-badge][data-state='info'], [data-sileo-title][data-state='info']) {
-    --_c: var(--sileo-state-info);
-}
-
-:where([data-sileo-badge][data-state='action'], [data-sileo-title][data-state='action']) {
-    --_c: var(--sileo-state-action);
-}
-
-/* --------------------------------- Content -------------------------------- */
-
-[data-sileo-content] {
-    position: absolute;
-    left: 0;
-    z-index: 10;
-    width: 100%;
-    box-sizing: border-box;
-    pointer-events: none;
-    opacity: var(--_co, 0);
-}
-
-[data-sileo-content]:not([data-visible='true']) {
-    content-visibility: hidden;
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-content] {
-    transition: opacity calc(var(--sileo-duration) * 0.08) var(--sileo-spring-easing) calc(var(--sileo-duration) * 0.04);
-}
-
-[data-sileo-content][data-edge='top'] {
-    top: 0;
-}
-
-[data-sileo-content][data-edge='bottom'] {
-    top: var(--sileo-height);
-}
-
-[data-sileo-content][data-visible='true'] {
-    pointer-events: auto;
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-content][data-visible='true'] {
-    transition: opacity var(--sileo-duration) var(--sileo-spring-easing) calc(var(--sileo-duration) * 0.25);
-}
-
-:where([data-sileo-description]) {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: left;
-    padding: 1rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--sileo-description-color, rgba(255, 255, 255, 0.8));
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    contain: layout style;
-    content-visibility: auto;
-}
-
-[data-sileo-toast][data-position='center'] [data-sileo-description] {
-    text-align: center;
-}
-
-/* --------------------------------- Button --------------------------------- */
-
-:where([data-sileo-button]) {
-    appearance: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 1.75rem;
-    padding: 0 0.625rem;
-    margin-top: 0.75rem;
-    border-radius: 9999px;
-    border: 0;
-    font: inherit;
-    font-size: 0.75rem;
-    font-weight: 500;
-    line-height: 1;
-    text-decoration: none;
-    cursor: pointer;
-    color: var(--sileo-button-color, var(--sileo-btn-color, currentColor));
-    background-color: var(--sileo-button-bg, var(--sileo-btn-bg, transparent));
-    transition: background-color 150ms ease;
-}
-
-:where([data-sileo-button]):hover {
-    background-color: var(--sileo-button-bg-hover, var(--sileo-btn-bg-hover, transparent));
-}
-
-:where([data-sileo-button]):focus-visible {
-    outline: 2px solid var(--sileo-button-color, var(--sileo-btn-color, currentColor));
-    outline-offset: 2px;
-}
-
-:where([data-sileo-button][data-state]) {
-    --_c: var(--sileo-state-success);
-    --sileo-btn-color: var(--_c);
-    --sileo-btn-bg: color-mix(in oklch, var(--_c) 15%, transparent);
-    --sileo-btn-bg-hover: color-mix(in oklch, var(--_c) 25%, transparent);
-}
-
-:where([data-sileo-button][data-state='loading']) {
-    --_c: var(--sileo-state-loading);
-}
-
-:where([data-sileo-button][data-state='error']) {
-    --_c: var(--sileo-state-error);
-}
-
-:where([data-sileo-button][data-state='warning']) {
-    --_c: var(--sileo-state-warning);
-}
-
-:where([data-sileo-button][data-state='info']) {
-    --_c: var(--sileo-state-info);
-}
-
-:where([data-sileo-button][data-state='action']) {
-    --_c: var(--sileo-state-action);
-}
-
-/* -------------------------------- Animations ------------------------------ */
-
-[data-sileo-icon='spin'] {
-    animation: sileo-spin 1s linear infinite;
-}
-
-@keyframes sileo-spin {
-    to {
-        rotate: 360deg;
-    }
-}
-
-@keyframes sileo-header-enter {
-    from {
-        opacity: 0;
-        filter: blur(6px);
-    }
-    to {
-        opacity: 1;
-        filter: blur(0px);
-    }
-}
-
-@keyframes sileo-header-exit {
-    from {
-        opacity: 1;
-        filter: blur(0px);
-    }
-    to {
-        opacity: 0;
-        filter: blur(6px);
-    }
-}
-
-/* -------------------------------- Viewports ------------------------------- */
-
-[data-sileo-viewport] {
+.sileo-viewport {
     position: fixed;
-    z-index: 50;
+    z-index: 9999;
     display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    pointer-events: none;
-    max-width: calc(100vw - 1.5rem);
-    contain: layout style;
-}
-
-[data-sileo-viewport][data-position^='top'] [data-sileo-toast]:not([data-ready='true']) {
-    margin-bottom: calc(-1 * (var(--sileo-height) + 0.75rem));
-}
-
-[data-sileo-viewport][data-position^='bottom'] [data-sileo-toast]:not([data-ready='true']) {
-    margin-top: calc(-1 * (var(--sileo-height) + 0.75rem));
-}
-
-/* Vertical edge */
-[data-sileo-viewport][data-position^='top'] {
-    top: 0;
-    flex-direction: column-reverse;
-}
-
-[data-sileo-viewport][data-position^='bottom'] {
-    bottom: 0;
     flex-direction: column;
+    gap: 0.75rem;
+    width: min(24rem, calc(100vw - 2rem));
+    pointer-events: none;
 }
 
-/* Horizontal alignment */
-[data-sileo-viewport][data-position$='left'] {
-    left: 0;
-    align-items: flex-start;
+.sileo-viewport[data-position^='top'] {
+    top: 1rem;
 }
-
-[data-sileo-viewport][data-position$='right'] {
-    right: 0;
-    align-items: flex-end;
+.sileo-viewport[data-position^='bottom'] {
+    bottom: 1rem;
 }
-
-[data-sileo-viewport][data-position$='center'] {
+.sileo-viewport[data-position$='left'] {
+    left: 1rem;
+}
+.sileo-viewport[data-position$='right'] {
+    right: 1rem;
+}
+.sileo-viewport[data-position$='center'] {
     left: 50%;
     transform: translateX(-50%);
+}
+
+.sileo-toast {
+    position: relative;
+    pointer-events: auto;
+    border-radius: 1rem;
+    border: 1px solid var(--sileo-border);
+    background: var(--sileo-bg);
+    color: var(--sileo-fg);
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    padding: 0.85rem 2.2rem 0.8rem 0.9rem;
+}
+
+.sileo-main {
+    display: grid;
+    gap: 0.4rem;
+}
+.sileo-heading {
+    display: flex;
     align-items: center;
+    gap: 0.55rem;
+}
+.sileo-title {
+    margin: 0;
+    font:
+        600 0.95rem/1.2 Inter,
+        system-ui,
+        sans-serif;
+}
+.sileo-description {
+    color: var(--sileo-muted);
+    font:
+        500 0.84rem/1.45 Inter,
+        system-ui,
+        sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    [data-sileo-toast][data-ready='true']:hover,
-    [data-sileo-toast][data-ready='true'][data-exiting='true'] {
-        will-change: transform, opacity, height;
-    }
+.sileo-badge {
+    border-radius: 999px;
+    padding: 0.15rem 0.48rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font:
+        600 0.62rem/1 Inter,
+        system-ui,
+        sans-serif;
+    background: var(--sileo-badge-bg);
+    color: var(--sileo-badge-fg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-    [data-sileo-viewport] *,
-    [data-sileo-viewport] *::before,
-    [data-sileo-viewport] *::after {
-        animation-duration: 0.01ms;
-        animation-iteration-count: 1;
-        transition-duration: 0.01ms;
-    }
+.sileo-action {
+    justify-self: start;
+    border: 0;
+    border-radius: 0.6rem;
+    padding: 0.35rem 0.62rem;
+    background: var(--sileo-action-bg);
+    color: var(--sileo-action-fg);
+    font:
+        600 0.75rem/1 Inter,
+        system-ui,
+        sans-serif;
+}
+
+.sileo-close {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    border: 0;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, #000 15%, transparent);
+    color: var(--sileo-fg);
+}
+
+.sileo-progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: color-mix(in oklab, #fff 65%, transparent);
+}
+
+.sileo-toast[data-state='success'] {
+    --sileo-bg: #052e16;
+}
+.sileo-toast[data-state='error'] {
+    --sileo-bg: #450a0a;
+}
+.sileo-toast[data-state='warning'] {
+    --sileo-bg: #422006;
+}
+.sileo-toast[data-state='info'] {
+    --sileo-bg: #082f49;
 }

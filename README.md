@@ -42,12 +42,12 @@ npm install sileo-svelte
 
 Only one `<Toaster />` is needed in your app.
 
-| Prop       | Type                                    | Default       | Description                                                                                     |
-| ---------- | --------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
-| `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                     |
-| `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                    |
+| Prop       | Type                                    | Default       | Description                                                                                                    |
+| ---------- | --------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                                    |
+| `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                                   |
 | `options`  | `Partial<SileoOptions>`                 | `undefined`   | Global defaults merged into every toast call. Per-toast fields win. `classes` and `styles` are merged per-key. |
-| `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                               |
+| `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                                              |
 
 `SileoOffsetConfig`:
 
