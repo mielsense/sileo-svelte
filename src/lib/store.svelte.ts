@@ -1,10 +1,8 @@
 import type { SileoOptions, SileoPosition, SileoState } from './types.js';
+import { COLLAPSE_DURATION, DEFAULT_DURATION, EXIT_DURATION } from './constants.js';
 
 /* -------------------------------- Constants ------------------------------- */
 
-const DEFAULT_DURATION = 6000;
-const EXIT_DURATION = DEFAULT_DURATION * 0.1;
-const COLLAPSE_DURATION = 650;
 const AUTO_EXPAND_RATIO = 0.025;
 const AUTO_COLLAPSE_RATIO = 0.65;
 
@@ -112,12 +110,18 @@ const mergeOptions = (options: InternalSileoOptions): InternalSileoOptions => ({
     ...mergeScopedOptions(store.globalOptions, options)
 });
 
+const resolveDuration = (opts: InternalSileoOptions): number | null => {
+    if (opts.duration !== undefined) return opts.duration;
+    return opts.state === 'loading' || opts.state === 'action' ? null : DEFAULT_DURATION;
+};
+
 const buildSileoItem = (merged: InternalSileoOptions, id: string, fallbackPosition?: SileoPosition): SileoItem => {
-    const duration = merged.duration ?? DEFAULT_DURATION;
+    const duration = resolveDuration(merged);
     const auto = resolveAutopilot(merged, duration);
     return {
         ...merged,
         id,
+        duration,
         instanceId: generateId(),
         position: merged.position ?? fallbackPosition ?? store.position,
         autoExpandDelayMs: auto.expandDelayMs,
@@ -139,7 +143,7 @@ const createToast = (options: InternalSileoOptions) => {
     } else {
         store.update((p) => [...p.filter((t) => t.id !== id), item]);
     }
-    return { id, duration: merged.duration ?? DEFAULT_DURATION };
+    return { id, duration: item.duration };
 };
 
 const updateToast = (id: string, options: InternalSileoOptions) => {
@@ -210,8 +214,12 @@ const createSileoApi = (scopedDefaults?: Partial<SileoOptions>): SileoApi => {
             const loadingOpts = withDefaults({ ...opts.loading, position: opts.position });
 
             if (opts.id) {
-                id = opts.id;
-                updateToast(id, { ...loadingOpts, state: 'loading', duration: null, id });
+                ({ id } = createToast({
+                    ...loadingOpts,
+                    state: 'loading',
+                    duration: null,
+                    id: opts.id
+                }));
             } else {
                 ({ id } = createToast({
                     ...loadingOpts,

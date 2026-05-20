@@ -98,6 +98,12 @@ sileo.success('Saved', 'Your changes have been saved.');
 // loading defaults to duration: null unless explicitly provided
 const id = sileo.loading('Uploading...');
 sileo.update(id, { state: 'success', title: 'Uploaded' });
+
+// action toasts are persistent by default, so users have time to interact
+sileo.action({
+    title: 'Confirm deploy',
+    button: { title: 'Deploy', onClick: (id) => sileo.close(id) }
+});
 ```
 
 ### Scoped defaults
@@ -141,7 +147,7 @@ sileo.promise(() => fetch('/api/upload', { method: 'POST' }), {
 
 | Option     | Type                                               | Required | Description                                               |
 | ---------- | -------------------------------------------------- | -------- | --------------------------------------------------------- |
-| `id`       | `string`                                           | No       | Existing toast id to morph instead of creating a new one. |
+| `id`       | `string`                                           | No       | Existing toast id to morph instead of creating a new one. Creates a new toast with this id if none exists. |
 | `loading`  | `Pick<SileoOptions, 'title' \| 'icon'>`            | Yes      | Pending state content.                                    |
 | `success`  | `SileoOptions \| ((data: T) => SileoOptions)`      | Yes      | Success state content.                                    |
 | `error`    | `SileoOptions \| ((err: unknown) => SileoOptions)` | Yes      | Error state content.                                      |
@@ -169,7 +175,7 @@ clear(position?: SileoPosition): void
 | `title`       | `string`                                            | State name         | Header title.                                           |
 | `description` | `string \| Snippet`                                 | `undefined`        | Expanded body content.                                  |
 | `position`    | `SileoPosition`                                     | Toaster `position` | Per-toast viewport override.                            |
-| `duration`    | `number \| null`                                    | `6000`             | Auto-dismiss timeout in ms. `null` keeps it persistent. |
+| `duration`    | `number \| null`                                    | `6000`             | Auto-dismiss timeout in ms. `null` keeps it persistent. Loading and action states default to `null`. |
 | `icon`        | `Snippet \| null`                                   | State icon         | Custom icon snippet; `null` hides icon.                 |
 | `classes`     | `SileoClasses`                                      | `undefined`        | Per-part class overrides.                               |
 | `styles`      | `SileoStyles`                                       | `undefined`        | Per-toast color variable overrides (Tailwind-free).     |
@@ -471,6 +477,7 @@ Override these variables globally:
     --sileo-duration: 600ms;
     --sileo-height: 40px;
     --sileo-width: 350px;
+    --sileo-z-index: 2147483647;
 
     --sileo-state-success: oklch(0.723 0.219 142.136);
     --sileo-state-loading: oklch(0.75 0 0);
@@ -480,6 +487,8 @@ Override these variables globally:
     --sileo-state-action: oklch(0.623 0.214 259.815);
 }
 ```
+
+`--sileo-z-index` controls the fixed toast viewport stack level. Override it if your app uses a custom overlay scale.
 
 Per-toast variables set via `options.styles` map to these CSS vars on each toast root:
 

@@ -12,11 +12,7 @@
         type SileoOffsetConfig
     } from './store.svelte.js';
     import { SILEO_POSITIONS, type SileoOptions, type SileoPosition } from './types.js';
-
-    /* -------------------------------- Constants ------------------------------- */
-
-    const DEFAULT_DURATION = 6000;
-    const EXIT_DURATION = DEFAULT_DURATION * 0.1;
+    import { DEFAULT_DURATION, EXIT_DURATION } from './constants.js';
 
     /* ---------------------------------- Props --------------------------------- */
 
@@ -80,7 +76,7 @@
             const key = timeoutKey(item);
             if (timers.has(key)) continue;
 
-            const dur = item.duration ?? DEFAULT_DURATION;
+            const dur = item.duration === undefined ? DEFAULT_DURATION : item.duration;
             if (dur === null || dur <= 0) continue;
 
             timers.set(

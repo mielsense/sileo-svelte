@@ -1,0 +1,3 @@
+export const DEFAULT_DURATION = 6000;
+export const EXIT_DURATION = DEFAULT_DURATION * 0.1;
+export const COLLAPSE_DURATION = 650;

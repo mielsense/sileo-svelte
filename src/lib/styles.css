@@ -40,6 +40,7 @@
     --sileo-duration: 600ms;
     --sileo-height: 40px;
     --sileo-width: 350px;
+    --sileo-z-index: 2147483647;
 
     --sileo-state-success: oklch(0.723 0.219 142.136);
     --sileo-state-loading: oklch(0.75 0 0);
@@ -439,7 +440,7 @@
 
 [data-sileo-viewport] {
     position: fixed;
-    z-index: 50;
+    z-index: var(--sileo-z-index);
     display: flex;
     gap: 0.75rem;
     padding: 0.75rem;
