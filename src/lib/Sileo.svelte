@@ -64,6 +64,7 @@
         refreshKey?: string;
         onmouseenter?: (e: MouseEvent) => void;
         onmouseleave?: (e: MouseEvent) => void;
+        onActivate?: () => void;
         onDismiss?: () => void;
     }
 
@@ -90,8 +91,10 @@
         refreshKey,
         onmouseenter,
         onmouseleave,
+        onActivate,
         onDismiss
     }: Props = $props();
+    const componentId = $props.id();
 
     /* ---------------------------------- State --------------------------------- */
 
@@ -130,6 +133,8 @@
     let pending: { key?: string; payload: View } | null = null;
     let headerPad: number | null = null;
     let pointerStart: number | null = null;
+    let pointerMaxDelta = 0;
+    let pointerStartedOpen: boolean | null = null;
     let suppressClick = false;
     let frozenExpanded = $state(HEIGHT * MIN_EXPAND_RATIO);
 
@@ -160,8 +165,8 @@
     const allowExpand = $derived(isLoading ? false : (canExpand ?? (!interruptKey || interruptKey === id)));
 
     const headerKey = $derived(`${view?.toastState}-${view?.title}`);
-    const filterId = $derived(`sileo-gooey-${id}`);
-    const contentId = $derived(`sileo-content-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+    const filterId = `${componentId}-gooey`;
+    const contentId = `${componentId}-content`;
     const resolvedRoundness = $derived(Math.max(0, roundness ?? DEFAULT_ROUNDNESS));
     const blur = $derived(resolvedRoundness * BLUR_RATIO);
 
@@ -474,7 +479,9 @@
     }
 
     function handleFocusIn() {
-        if (hasDesc && allowExpand) isExpanded = true;
+        if (!hasDesc || isLoading || (!allowExpand && !onActivate)) return;
+        onActivate?.();
+        isExpanded = true;
     }
 
     function handleFocusOut(e: FocusEvent) {
@@ -485,18 +492,22 @@
 
     function handleKeyDown(e: KeyboardEvent) {
         if (e.key !== 'Escape' || !open) return;
+        e.preventDefault();
         e.stopPropagation();
+        headerEl?.focus();
         isExpanded = false;
     }
 
     function handleTriggerClick() {
+        const startedOpen = pointerStartedOpen;
+        pointerStartedOpen = null;
         if (suppressClick) {
             suppressClick = false;
             return;
         }
-        const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches;
-        if (!hasDesc || isLoading || !allowExpand || (!view.button && !coarsePointer)) return;
-        isExpanded = !isExpanded;
+        if (!hasDesc || isLoading || (!allowExpand && !onActivate)) return;
+        onActivate?.();
+        isExpanded = startedOpen === null ? !isExpanded : !startedOpen;
     }
 
     function handleTransitionEnd(e: TransitionEvent) {
@@ -514,11 +525,19 @@
     }
 
     function handlePointerDown(e: PointerEvent) {
-        if (exiting || !onDismiss) return;
+        if (exiting) return;
         const target = e.target as HTMLElement;
         if (target.closest('[data-sileo-button]')) return;
+
+        if (target.closest('[data-sileo-trigger]')) {
+            onActivate?.();
+            pointerStartedOpen = open;
+        }
+
+        if (!onDismiss) return;
         suppressClick = false;
         pointerStart = e.clientY;
+        pointerMaxDelta = 0;
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
 
@@ -531,7 +550,8 @@
         const onMove = (e: PointerEvent) => {
             if (pointerStart === null) return;
             const dy = e.clientY - pointerStart;
-            if (Math.abs(dy) > 5) suppressClick = true;
+            pointerMaxDelta = Math.max(pointerMaxDelta, Math.abs(dy));
+            if (pointerMaxDelta > 5) suppressClick = true;
             const sign = dy > 0 ? 1 : -1;
             const clamped = Math.min(Math.abs(dy), SWIPE_MAX) * sign;
             el.style.transform = `translateY(${clamped}px)`;
@@ -542,7 +562,8 @@
             const dy = e.clientY - pointerStart;
             pointerStart = null;
             el.style.transform = '';
-            suppressClick = Math.abs(dy) > 5;
+            suppressClick = pointerMaxDelta > 5;
+            pointerMaxDelta = 0;
             if (Math.abs(dy) > SWIPE_DISMISS) {
                 onDismiss?.();
             }
@@ -550,19 +571,32 @@
 
         const onCancel = () => {
             pointerStart = null;
+            pointerMaxDelta = 0;
+            pointerStartedOpen = null;
+            suppressClick = false;
             el.style.transform = '';
+        };
+
+        const onLostCapture = () => {
+            if (pointerStart !== null) onCancel();
+        };
+
+        const onCapturedClick = (e: MouseEvent) => {
+            if (e.target === el && pointerStartedOpen !== null) handleTriggerClick();
         };
 
         el.addEventListener('pointermove', onMove, { passive: true });
         el.addEventListener('pointerup', onUp, { passive: true });
         el.addEventListener('pointercancel', onCancel, { passive: true });
-        el.addEventListener('lostpointercapture', onCancel);
+        el.addEventListener('lostpointercapture', onLostCapture);
+        el.addEventListener('click', onCapturedClick);
 
         return () => {
             el.removeEventListener('pointermove', onMove);
             el.removeEventListener('pointerup', onUp);
             el.removeEventListener('pointercancel', onCancel);
-            el.removeEventListener('lostpointercapture', onCancel);
+            el.removeEventListener('lostpointercapture', onLostCapture);
+            el.removeEventListener('click', onCapturedClick);
         };
     });
 

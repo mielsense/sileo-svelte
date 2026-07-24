@@ -168,6 +168,10 @@
             schedule(store.toasts);
         }
     }
+
+    function handleActivate(toastId: string) {
+        activeId = toastId;
+    }
 </script>
 
 {#if children}
@@ -207,6 +211,7 @@
                     canExpand={activeId === undefined || activeId === item.id}
                     onmouseenter={() => handleMouseEnter(item.id)}
                     onmouseleave={() => handleMouseLeave()}
+                    onActivate={() => handleActivate(item.id)}
                     onDismiss={() => dismissToast(item.id)}
                 />
             {/each}

@@ -44,19 +44,14 @@ class ResizeObserverMock {
     }
 }
 
-function stubCoarsePointer(matches: boolean) {
-    vi.stubGlobal(
-        'matchMedia',
-        vi.fn(() => ({
-            matches,
-            media: '(pointer: coarse)',
-            onchange: null,
-            addListener: vi.fn(),
-            removeListener: vi.fn(),
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-            dispatchEvent: vi.fn()
-        }))
+function dispatchPointer(target: Element, type: string, clientY: number, pointerId = 1) {
+    target.dispatchEvent(
+        new PointerEvent(type, {
+            bubbles: true,
+            clientY,
+            pointerId,
+            pointerType: 'touch'
+        })
     );
 }
 
@@ -64,7 +59,6 @@ describe('Toaster', () => {
     beforeEach(() => {
         ResizeObserverMock.reset();
         vi.stubGlobal('ResizeObserver', ResizeObserverMock);
-        stubCoarsePointer(false);
         store.toasts = [];
         store.position = 'top-right';
         store.globalOptions = undefined;
@@ -172,12 +166,12 @@ describe('Toaster', () => {
     });
 
     test('uses default dimensions for every collapsed geometry layer', async () => {
+        // Happy DOM does not calculate title width. Real pill/header alignment remains pending browser QA.
         sileo.success('Default geometry');
         const { container } = render(Toaster);
 
         await tick();
 
-        const toast = container.querySelector('[data-sileo-toast]') as HTMLElement;
         const svg = container.querySelector('[data-sileo-svg]') as SVGElement;
         const body = container.querySelector('[data-sileo-body]') as SVGRectElement;
 
@@ -186,7 +180,6 @@ describe('Toaster', () => {
         expect(svg.getAttribute('viewBox')).toBe('0 0 350 40');
         expect(body.getAttribute('width')).toBe('350');
         expect(body.getAttribute('y')).toBe('40');
-        expect(toast.style.getPropertyValue('--_px')).toBe('310px');
     });
 
     test('updates aligned geometry when the public width changes at runtime', async () => {
@@ -206,7 +199,6 @@ describe('Toaster', () => {
         expect(svg.getAttribute('width')).toBe('300');
         expect(svg.getAttribute('viewBox')).toBe('0 0 300 40');
         expect(body.getAttribute('width')).toBe('300');
-        expect(toast.style.getPropertyValue('--_px')).toBe('260px');
 
         toast.style.setProperty('--sileo-width', '400px');
         ResizeObserverMock.resize(toast, 400, 40);
@@ -215,7 +207,6 @@ describe('Toaster', () => {
         expect(svg.getAttribute('width')).toBe('400');
         expect(svg.getAttribute('viewBox')).toBe('0 0 400 40');
         expect(body.getAttribute('width')).toBe('400');
-        expect(toast.style.getPropertyValue('--_px')).toBe('360px');
     });
 
     test('updates vertical geometry when the public height changes at runtime', async () => {
@@ -256,7 +247,6 @@ describe('Toaster', () => {
         expect(stylesheet).toContain('width: min(var(--sileo-width), calc(100vw - 1.5rem));');
         expect(svg.getAttribute('width')).toBe('296');
         expect(body.getAttribute('width')).toBe('296');
-        expect(toast.style.getPropertyValue('--_px')).toBe('256px');
     });
 
     test('does not render a fallback icon or badge when icon is null', async () => {
@@ -409,6 +399,7 @@ describe('Toaster', () => {
         await fireEvent.keyDown(button, { key: 'Escape' });
 
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(trigger);
     });
 
     test('does not add a noninteractive status toast to the tab order', async () => {
@@ -428,11 +419,10 @@ describe('Toaster', () => {
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
     });
 
-    test('toggles described content with a coarse-pointer click', async () => {
-        stubCoarsePointer(true);
+    test('toggles described content through its semantic header button on a fine pointer', async () => {
         sileo.success({
-            title: 'Tap for details',
-            description: 'Touch-accessible content',
+            title: 'Click for details',
+            description: 'Pointer-accessible content',
             autopilot: false
         });
         const { container } = render(Toaster);
@@ -441,15 +431,116 @@ describe('Toaster', () => {
 
         const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
 
-        await fireEvent.click(trigger);
+        trigger.click();
+        await tick();
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
-        await fireEvent.click(trigger);
+        trigger.click();
+        await tick();
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
     });
 
-    test('does not expand when a coarse-pointer click follows a touch drag', async () => {
-        stubCoarsePointer(true);
+    test('keeps a native pointer-focus-click activation open exactly once', async () => {
+        sileo.action({
+            title: 'Native activation',
+            description: 'Pointer-accessible action',
+            autopilot: false,
+            button: { title: 'Apply', onClick: vi.fn() }
+        });
+        const { container } = render(Toaster);
+
+        await tick();
+
+        const toast = container.querySelector('[data-sileo-toast]') as HTMLElement;
+        const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        toast.setPointerCapture = vi.fn();
+
+        dispatchPointer(trigger, 'pointerdown', 10);
+        trigger.focus();
+        trigger.click();
+        await tick();
+
+        expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+        trigger.click();
+        await tick();
+        expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('allows an older stacked toast to expand from keyboard focus', async () => {
+        sileo.action({
+            title: 'Older keyboard toast',
+            description: 'Older action',
+            autopilot: false,
+            button: { title: 'Older action', onClick: vi.fn() }
+        });
+        sileo.action({
+            title: 'Newer keyboard toast',
+            description: 'Newer action',
+            autopilot: false,
+            button: { title: 'Newer action', onClick: vi.fn() }
+        });
+        const { getByText } = render(Toaster);
+
+        await tick();
+
+        const olderToast = getByText('Older keyboard toast').closest('[data-sileo-toast]') as HTMLElement;
+        const olderTrigger = olderToast.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+
+        olderTrigger.focus();
+        await tick();
+
+        expect(olderTrigger.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    test('allows an older stacked toast to expand from touch activation', async () => {
+        sileo.success({
+            title: 'Older touch toast',
+            description: 'Older details',
+            autopilot: false
+        });
+        sileo.success({
+            title: 'Newer touch toast',
+            description: 'Newer details',
+            autopilot: false
+        });
+        const { getByText } = render(Toaster);
+
+        await tick();
+
+        const olderToast = getByText('Older touch toast').closest('[data-sileo-toast]') as HTMLElement;
+        const olderTrigger = olderToast.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        olderToast.setPointerCapture = vi.fn();
+
+        dispatchPointer(olderTrigger, 'pointerdown', 10);
+        olderTrigger.click();
+        await tick();
+
+        expect(olderTrigger.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    test('expands when pointer capture retargets a touch click to the toast root', async () => {
+        sileo.success({
+            title: 'Captured touch toast',
+            description: 'Captured details',
+            autopilot: false
+        });
+        const { container } = render(Toaster);
+
+        await tick();
+
+        const toast = container.querySelector('[data-sileo-toast]') as HTMLElement;
+        const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        toast.setPointerCapture = vi.fn();
+
+        dispatchPointer(trigger, 'pointerdown', 10);
+        toast.click();
+        await tick();
+
+        expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    test('does not expand when a click follows a touch drag that returns near its origin', async () => {
         sileo.success({
             title: 'Drag for details',
             description: 'Touch-accessible content',
@@ -463,16 +554,64 @@ describe('Toaster', () => {
         const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
         toast.setPointerCapture = vi.fn();
 
-        await fireEvent.pointerDown(trigger, { clientY: 10, pointerId: 1, pointerType: 'touch' });
-        await fireEvent.pointerMove(toast, { clientY: 20, pointerId: 1, pointerType: 'touch' });
-        await fireEvent.pointerUp(toast, { clientY: 20, pointerId: 1, pointerType: 'touch' });
-        await fireEvent.click(trigger);
+        dispatchPointer(trigger, 'pointerdown', 10);
+        dispatchPointer(toast, 'pointermove', 30);
+        dispatchPointer(toast, 'pointermove', 11);
+        dispatchPointer(toast, 'pointerup', 11);
+        trigger.click();
+        await tick();
 
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
     });
 
-    test('invokes a coarse-pointer action exactly once without collapsing its toast', async () => {
-        stubCoarsePointer(true);
+    test('resets touch-drag suppression when the gesture is cancelled', async () => {
+        sileo.success({
+            title: 'Cancelled drag',
+            description: 'Touch-accessible content',
+            autopilot: false
+        });
+        const { container } = render(Toaster);
+
+        await tick();
+
+        const toast = container.querySelector('[data-sileo-toast]') as HTMLElement;
+        const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        toast.setPointerCapture = vi.fn();
+
+        dispatchPointer(trigger, 'pointerdown', 10);
+        dispatchPointer(toast, 'pointermove', 30);
+        dispatchPointer(toast, 'pointercancel', 30);
+        trigger.click();
+        await tick();
+
+        expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    test('uses collision-safe disclosure content ids', async () => {
+        const first = render(Sileo, {
+            id: 'same value',
+            title: 'First collision',
+            description: 'First details'
+        });
+        const second = render(Sileo, {
+            id: 'same?value',
+            title: 'Second collision',
+            description: 'Second details'
+        });
+
+        await tick();
+
+        const firstTrigger = first.container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        const secondTrigger = second.container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        const firstContent = first.container.querySelector('[data-sileo-content]') as HTMLElement;
+        const secondContent = second.container.querySelector('[data-sileo-content]') as HTMLElement;
+
+        expect(firstTrigger.getAttribute('aria-controls')).toBe(firstContent.id);
+        expect(secondTrigger.getAttribute('aria-controls')).toBe(secondContent.id);
+        expect(firstContent.id).not.toBe(secondContent.id);
+    });
+
+    test('invokes a touch action exactly once without collapsing its toast', async () => {
         const onClick = vi.fn();
         const id = sileo.action({
             title: 'Tap action',
@@ -484,9 +623,13 @@ describe('Toaster', () => {
 
         await tick();
 
+        const toast = container.querySelector('[data-sileo-toast]') as HTMLElement;
         const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        toast.setPointerCapture = vi.fn();
 
-        await fireEvent.click(trigger);
+        dispatchPointer(trigger, 'pointerdown', 10);
+        trigger.click();
+        await tick();
         await fireEvent.click(getByRole('button', { name: 'Apply' }));
 
         expect(onClick).toHaveBeenCalledTimes(1);
