@@ -81,9 +81,10 @@ await sileo.promise(() => saveDocument(), {
 ```
 
 The helper returns the original promise. Synchronous throws and rejected
-promises both use the error mapping. A mapper error also moves the toast to the
-configured error state without replacing a newer toast that reused the same
-ID.
+promises both use the error mapping. Errors thrown by success or action mappers
+also pass through the error mapping. If the error mapper itself throws, that
+failure is logged and the toast keeps its current state. Async results never
+replace a newer toast that reused the same ID.
 
 ### Add an action
 
@@ -293,9 +294,11 @@ the mechanism recommended for your Tailwind version.
 ## Accessibility and motion
 
 - Viewports use a polite live region.
-- Toast headers are keyboard-focusable buttons. Enter, Space, click, or tap
-  expands and collapses the selected toast, including older stacked toasts.
-- Escape closes the expanded body and returns focus to its header.
+- Headers with an action button are keyboard-focusable. Enter or Space expands
+  and collapses that toast, including older stacked toasts. Status-only headers
+  are not tab stops.
+- Click or tap expands and collapses descriptions. Escape closes an expanded
+  actionable body and returns focus to its header.
 - Action buttons have visible focus treatment.
 - Hover pauses dismissal only on fine-pointer devices. Touch users can tap to
   expand and swipe vertically to dismiss.
@@ -304,9 +307,10 @@ the mechanism recommended for your Tailwind version.
 
 ## Scenario lab
 
-The repository includes a deterministic browser lab for success, loading,
-error, warning, action, promise, update, scoped-default, and no-icon flows. It
-also exposes the source for each scenario. Run it locally:
+The repository includes a deterministic browser lab for core success, async
+promise, action and retry, scoped defaults, custom styling with an action, and
+rich snippet flows. It also exposes the source for each scenario. Run it
+locally:
 
 ```bash
 bun install
