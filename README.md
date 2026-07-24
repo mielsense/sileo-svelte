@@ -1,18 +1,21 @@
 # sileo-svelte
 
-Physics-based toast notifications for **Svelte 5**.
+Physics-based, gooey toast notifications for Svelte 5.
 
-> Unofficial Svelte 5 port of [Sileo](https://github.com/hiaaryan/sileo) by [Aaryan](https://github.com/hiaaryan).
+[Scenario lab](#scenario-lab) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
 
-## Installation
+An unofficial Svelte 5 port of [Sileo](https://github.com/hiaaryan/sileo) by
+[Aaryan](https://github.com/hiaaryan).
+
+## Install
 
 ```bash
 npm install sileo-svelte
 ```
 
-## Quick Start
+## 60-second start
 
-### 1. Mount the toaster once
+Mount one toaster near the root of your app and import its stylesheet once.
 
 ```svelte
 <!-- src/routes/+layout.svelte -->
@@ -24,426 +27,199 @@ npm install sileo-svelte
 </script>
 
 {@render children()}
-
 <Toaster position="top-right" />
 ```
 
-### 2. Trigger toasts from anywhere
+Trigger a toast from any component or module.
 
 ```svelte
 <script>
     import { sileo } from 'sileo-svelte';
 </script>
 
-<button onclick={() => sileo.success('Saved', 'Your changes have been saved.')}>Save</button>
+<button onclick={() => sileo.success('Saved', 'Your changes are secure.')}>Save</button>
 ```
 
-## `<Toaster />` Props
+Creation methods return the toast ID, which can be reused for updates and
+promise flows.
 
-Only one `<Toaster />` is needed in your app.
+## Common recipes
 
-| Prop       | Type                                    | Default       | Description                                                                                                    |
-| ---------- | --------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                                    |
-| `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                                   |
-| `options`  | `Partial<SileoOptions>`                 | `undefined`   | Global defaults merged into every toast call. Per-toast fields win. `classes` and `styles` are merged per-key. |
-| `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                                              |
-
-`SileoOffsetConfig`:
+### Create and update
 
 ```ts
-type SileoOffsetConfig = Partial<{
-    top: number | string;
-    right: number | string;
-    bottom: number | string;
-    left: number | string;
-}>;
-```
+const id = sileo.loading('Uploading');
 
-`SileoPosition`:
-
-```ts
-'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
-```
-
-## `sileo` API
-
-All creation methods return the toast `id: string`.
-
-### Creation methods
-
-```ts
-show(input: SileoInput, description?: SileoOptions['description']): string
-success(input: SileoInput, description?: SileoOptions['description']): string
-error(input: SileoInput, description?: SileoOptions['description']): string
-warning(input: SileoInput, description?: SileoOptions['description']): string
-info(input: SileoInput, description?: SileoOptions['description']): string
-action(input: SileoInput, description?: SileoOptions['description']): string
-loading(input: SileoInput, description?: SileoOptions['description']): string
-```
-
-`SileoInput`:
-
-```ts
-type SileoInput = SileoOptions | string;
-```
-
-Examples:
-
-```ts
-sileo.success({ title: 'Saved' });
-sileo.success('Saved');
-sileo.success('Saved', 'Your changes have been saved.');
-
-// loading defaults to duration: null unless explicitly provided
-const id = sileo.loading('Uploading...');
-sileo.update(id, { state: 'success', title: 'Uploaded' });
-
-// action toasts are persistent by default, so users have time to interact
-sileo.action({
-    title: 'Confirm deploy',
-    button: { title: 'Deploy', onClick: (id) => sileo.close(id) }
+sileo.update(id, { title: 'Uploading', description: '50%' });
+sileo.update(id, {
+    state: 'success',
+    title: 'Uploaded',
+    description: '100%',
+    duration: 4000
 });
 ```
 
-### Scoped defaults
+Partial updates preserve the current toast fields. Explicit update fields take
+precedence over the existing toast, scoped defaults, and toaster defaults.
+Changing state without specifying `duration` applies the new state's default
+duration.
 
-Use `sileo.with(defaults)` to avoid repeating common options.
+### Track a promise
+
+```ts
+await sileo.promise(() => saveDocument(), {
+    loading: { title: 'Saving' },
+    success: (document) => ({
+        title: 'Saved',
+        description: document.name
+    }),
+    error: (error) => ({
+        title: 'Could not save',
+        description: error instanceof Error ? error.message : 'Unknown error'
+    })
+});
+```
+
+The helper returns the original promise. Synchronous throws and rejected
+promises both use the error mapping. A mapper error also moves the toast to the
+configured error state without replacing a newer toast that reused the same
+ID.
+
+### Add an action
+
+```ts
+sileo.action({
+    title: 'Deploy release',
+    description: 'Production is ready for the next version.',
+    button: {
+        title: 'Deploy',
+        onClick: (id) => sileo.close(id)
+    }
+});
+```
+
+Action and loading toasts are persistent by default. Set a numeric `duration`
+when they should dismiss automatically.
+
+### Reuse scoped defaults
 
 ```ts
 const billingToasts = sileo.with({
     position: 'bottom-right',
     duration: 4000,
-    fill: '#121212'
+    fill: '#121212',
+    styles: { titleColor: 'white' }
 });
 
 billingToasts.success('Invoice paid');
-billingToasts.error('Payment failed', 'Please retry with another card.');
+billingToasts.error('Payment failed', 'Try another payment method.');
 ```
 
-Defaults are merged recursively for `classes` and `styles`, and shallow-merged for other fields.
+Calling `with` returns another complete API. `classes` and `styles` merge by
+key; other options merge shallowly.
 
-### Promise helper
-
-```ts
-promise<T>(
-  promise: Promise<T> | (() => Promise<T>),
-  opts: SileoPromiseOptions<T>
-): Promise<T>
-```
+### Hide or replace the icon
 
 ```ts
-sileo.promise(() => fetch('/api/upload', { method: 'POST' }), {
-    loading: { title: 'Uploading' },
-    success: () => ({ title: 'Done', description: 'File uploaded successfully!' }),
-    error: (err) => ({
-        title: 'Failed',
-        description: err instanceof Error ? err.message : 'Upload failed.'
-    })
+sileo.info({
+    title: 'Quiet update',
+    description: 'No status badge is rendered.',
+    icon: null
 });
 ```
 
-`SileoPromiseOptions<T>`:
+`description` and `icon` also accept Svelte snippets for rich content.
 
-| Option     | Type                                               | Required | Description                                                                                                |
-| ---------- | -------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `id`       | `string`                                           | No       | Existing toast id to morph instead of creating a new one. Creates a new toast with this id if none exists. |
-| `loading`  | `Pick<SileoOptions, 'title' \| 'icon'>`            | Yes      | Pending state content.                                                                                     |
-| `success`  | `SileoOptions \| ((data: T) => SileoOptions)`      | Yes      | Success state content.                                                                                     |
-| `error`    | `SileoOptions \| ((err: unknown) => SileoOptions)` | Yes      | Error state content.                                                                                       |
-| `action`   | `SileoOptions \| ((data: T) => SileoOptions)`      | No       | If provided, replaces `success` state.                                                                     |
-| `position` | `SileoPosition`                                    | No       | Position override for the promise toast.                                                                   |
+### Orchestrate one toast
 
-### Update and dismissal
+Use an existing ID to morph one notification through a longer workflow.
 
 ```ts
-update(id: string, opts: SileoOptions & { state?: SileoState }): void
-dismiss(id: string): void
-close(id: string): void
-clear(position?: SileoPosition): void
-```
+const id = sileo.loading('Preparing release');
 
-- `update`: morphs content/state in place.
-- `dismiss`: immediate exit animation.
-- `close`: collapse first, then exit.
-- `clear`: remove all toasts (or a specific viewport).
-
-## `SileoOptions`
-
-| Field         | Type                                                | Default            | Description                                                                                          |
-| ------------- | --------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------- |
-| `title`       | `string`                                            | State name         | Header title.                                                                                        |
-| `description` | `string \| Snippet`                                 | `undefined`        | Expanded body content.                                                                               |
-| `position`    | `SileoPosition`                                     | Toaster `position` | Per-toast viewport override.                                                                         |
-| `duration`    | `number \| null`                                    | `6000`             | Auto-dismiss timeout in ms. `null` keeps it persistent. Loading and action states default to `null`. |
-| `icon`        | `Snippet \| null`                                   | State icon         | Custom icon snippet; `null` hides icon.                                                              |
-| `classes`     | `SileoClasses`                                      | `undefined`        | Per-part class overrides.                                                                            |
-| `styles`      | `SileoStyles`                                       | `undefined`        | Per-toast color variable overrides (Tailwind-free).                                                  |
-| `fill`        | `string`                                            | `'#1c1c1e'`        | Toast background color.                                                                              |
-| `roundness`   | `number`                                            | `18`               | Corner radius.                                                                                       |
-| `autopilot`   | `boolean \| { expand?: number; collapse?: number }` | `true`             | Automatic expand/collapse behavior.                                                                  |
-| `button`      | `SileoButton`                                       | `undefined`        | Action button shown in expanded body.                                                                |
-
-`SileoClasses`:
-
-```ts
-interface SileoClasses {
-    title?: string;
-    description?: string;
-    badge?: string;
-    button?: string;
-}
-```
-
-`SileoStyles`:
-
-```ts
-interface SileoStyles {
-    titleColor?: string;
-    descriptionColor?: string;
-    badgeColor?: string;
-    badgeBackground?: string;
-    buttonColor?: string;
-    buttonBackground?: string;
-    buttonHoverBackground?: string;
-}
-```
-
-`SileoButton`:
-
-```ts
-interface SileoButton {
-    title: string;
-    onClick: (id: string) => void;
-}
-```
-
-`SileoState`:
-
-```ts
-'success' | 'loading' | 'error' | 'warning' | 'info' | 'action';
-```
-
-## Practical Examples
-
-### Custom appearance
-
-```ts
-sileo.success({ title: 'Dark', description: 'Custom background.', fill: '#1a1a2e' });
-sileo.info({ title: 'Square', description: 'Reduced roundness.', roundness: 4 });
-sileo.warning({ title: 'Manual', description: 'Hover to read.', autopilot: false });
-```
-
-### Styling with `classes` and `styles`
-
-```ts
-// Class-based styling
-sileo.action({
-    title: 'Class styling',
-    description: 'Uses classes.title/classes.description/classes.button',
-    classes: {
-        title: 'text-foreground',
-        description: 'text-foreground',
-        button: 'text-primary-foreground hover:bg-primary/90'
-    },
-    button: { title: 'Close', onClick: (id) => sileo.close(id) }
-});
-
-// Variable-based styling (recommended if utility extraction is inconsistent)
-sileo.action({
-    title: 'Variable styling',
-    description: 'Uses styles.*',
-    styles: {
-        titleColor: 'var(--foreground)',
-        descriptionColor: 'var(--foreground)',
-        buttonColor: 'var(--primary-foreground)',
-        buttonBackground: 'var(--primary)',
-        buttonHoverBackground: 'color-mix(in oklch, var(--primary) 85%, black)'
-    },
-    button: { title: 'Close', onClick: (id) => sileo.close(id) }
-});
-```
-
-Tailwind note:
-
-- If utility classes are passed inside JS strings (like `options.classes.button`), Tailwind may not always detect them.
-- For Tailwind v4, safelist them via `@source inline("text-foreground text-primary-foreground hover:bg-primary/90")`.
-
-### Reusing a toast id
-
-```ts
-const id = sileo.loading('Uploading file...');
-
-sileo.update(id, { title: 'Uploading', description: '50%' });
-sileo.update(id, { state: 'success', title: 'Done', description: '100%', duration: 4000 });
-```
-
-### Svelte snippets for rich content (`description` and `icon`)
-
-`SileoOptions` supports snippets in two places:
-
-- `description`: rich body content in the expanded area
-- `icon`: custom header icon badge
-
-```svelte
-<script>
-    import { sileo } from 'sileo-svelte';
-</script>
-
-{#snippet customDescription()}
-    <div>
-        <strong>Release ready.</strong>
-        <p>Click deploy to roll out v2.4.0.</p>
-    </div>
-{/snippet}
-
-{#snippet rocketIcon()}
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-    >
-        <path d="M4.5 16.5c-1.5 1.26-2 3.75-2 3.75s2.49-.5 3.75-2l3-3-1.75-1.75z" />
-        <path d="M14 10l-4 4" />
-        <path d="M16 4l4 4" />
-        <path d="M21.17 2.83a2.83 2.83 0 0 1 0 4L11 17l-4-4L17.17 2.83a2.83 2.83 0 0 1 4 0z" />
-    </svg>
-{/snippet}
-
-<button
-    onclick={() =>
-        sileo.action({
-            title: 'Deploy',
-            description: customDescription,
-            icon: rocketIcon,
-            button: {
-                title: 'Run',
-                onClick: (id) => sileo.close(id)
-            }
-        })}>Show Rich Toast</button
->
-```
-
-Notes:
-
-- `description` and `icon` both accept either plain values (`string` / `null`) or snippets.
-- Set `icon: null` to hide the icon entirely.
-- Snippets are also valid in `sileo.update(...)` payloads, so you can morph to/from rich content.
-
-### Advanced workflows (update + promise orchestration)
-
-```ts
-const id = sileo.loading('Deploying v2.4.0...');
-
-await delay(1000);
 sileo.update(id, {
     state: 'info',
-    title: 'Uploading build',
-    description: 'Artifacts uploaded to edge cache.'
+    title: 'Running checks',
+    description: 'Validating six regions'
 });
 
-await delay(1000);
-sileo.update(id, {
-    state: 'warning',
-    title: 'Running health checks',
-    description: 'Smoke tests on 6 regions...'
-});
-
-// Final stage: morph same toast through promise lifecycle
-sileo.promise(
-    async () => {
-        await delay(900);
-        return await releaseToProduction();
-    },
-    {
-        id,
-        loading: { title: 'Rolling out' },
-        success: () => ({
-            state: 'action',
-            title: 'Deployment complete',
-            description: 'Traffic switched to v2.4.0.',
-            button: {
-                title: 'View logs',
-                onClick: (toastId) => {
-                    openDeploymentLogs();
-                    sileo.close(toastId);
-                }
-            }
-        }),
-        error: (err) => ({
-            title: 'Rollback triggered',
-            description: err instanceof Error ? err.message : 'Unknown deploy error',
-            duration: null
-        })
-    }
-);
-```
-
-```ts
-// Action-first flow that morphs into promise states
-sileo.action({
-    title: 'Update available',
-    description: 'Version 2.0 is ready to install.',
-    button: {
-        title: 'Install now',
-        onClick: (id) => {
-            sileo.promise(() => installUpdate(), {
-                id,
-                loading: { title: 'Installing' },
-                success: () => ({
-                    state: 'action',
-                    title: 'Installed successfully',
-                    description: 'Restart app to apply the update.',
-                    button: {
-                        title: 'Restart',
-                        onClick: (toastId) => sileo.close(toastId)
-                    }
-                }),
-                error: (err) => ({
-                    state: 'action',
-                    title: 'Install failed',
-                    description: err instanceof Error ? err.message : 'Unknown install error',
-                    duration: null,
-                    button: {
-                        title: 'Retry',
-                        onClick: (toastId) => {
-                            sileo.promise(() => installUpdate(), {
-                                id: toastId,
-                                loading: { title: 'Retrying install' },
-                                success: { title: 'Retry succeeded', description: 'Update installed.' },
-                                error: { title: 'Still failing', description: 'Please check logs.', duration: null }
-                            });
-                        }
-                    }
-                })
-            });
-        }
-    }
+await sileo.promise(() => releaseToProduction(), {
+    id,
+    loading: { title: 'Rolling out' },
+    success: { title: 'Release complete', description: 'Traffic switched' },
+    error: { title: 'Rollback started', duration: null }
 });
 ```
 
-### Toaster defaults and viewport offset
+## API
+
+### `<Toaster />`
+
+Only one toaster is normally needed.
+
+| Prop       | Type                              | Default       | Purpose                                                |
+| ---------- | --------------------------------- | ------------- | ------------------------------------------------------ |
+| `position` | `SileoPosition`                   | `'top-right'` | Default viewport; a toast can override it              |
+| `offset`   | `number \| string \| edge object` | `undefined`   | Space from matching viewport edges; numbers use pixels |
+| `options`  | `Partial<SileoOptions>`           | `undefined`   | Defaults applied to every toast                        |
+| `children` | `Snippet`                         | `undefined`   | Optional content rendered before the viewports         |
+
+An edge object can contain `top`, `right`, `bottom`, and `left`, each as a
+number or CSS length.
 
 ```svelte
 <Toaster
     position="bottom-right"
-    options={{
-        duration: 4000,
-        fill: '#0a0a0a',
-        roundness: 12
-    }}
-    offset={{ top: 60, right: 16 }}
+    offset={{ bottom: 24, right: 'max(16px, env(safe-area-inset-right))' }}
+    options={{ duration: 4000, roundness: 12 }}
 />
 ```
 
-## Exports
+### `sileo`
+
+All creation methods accept either a title string or `SileoOptions` and return
+an ID.
+
+```ts
+show(input, description?): string
+success(input, description?): string
+error(input, description?): string
+warning(input, description?): string
+info(input, description?): string
+action(input, description?): string
+loading(input, description?): string
+
+update(id, options): void
+dismiss(id): void
+close(id): void
+clear(position?): void
+with(defaults): SileoApi
+promise(promiseOrFactory, options): Promise<T>
+```
+
+`dismiss` starts the exit immediately. `close` collapses before exiting.
+`clear` removes every toast, or only those in a supplied position.
+
+### Options
+
+| Field         | Type                      | Default          | Purpose                               |
+| ------------- | ------------------------- | ---------------- | ------------------------------------- |
+| `title`       | `string`                  | state name       | Header label                          |
+| `description` | `string \| Snippet`       | `undefined`      | Expanded body content                 |
+| `position`    | `SileoPosition`           | toaster position | Per-toast viewport                    |
+| `duration`    | `number \| null`          | `6000`           | Dismiss delay; `null` is persistent   |
+| `icon`        | `Snippet \| null`         | state icon       | Custom badge content; `null` hides it |
+| `classes`     | `SileoClasses`            | `undefined`      | Classes for named toast parts         |
+| `styles`      | `SileoStyles`             | `undefined`      | Per-toast color variables             |
+| `fill`        | `string`                  | `'#1c1c1e'`      | Toast surface color                   |
+| `roundness`   | `number`                  | `18`             | Corner radius                         |
+| `autopilot`   | `boolean \| delay object` | `true`           | Automatic expand and collapse         |
+| `button`      | `SileoButton`             | `undefined`      | Expanded action button                |
+
+Positions are `top-left`, `top-center`, `top-right`, `bottom-left`,
+`bottom-center`, `bottom-right`.
+
+### Public exports
 
 ```ts
 import {
@@ -460,17 +236,23 @@ import {
     type SileoButton,
     type SileoPromiseOptions
 } from 'sileo-svelte';
-```
 
-Import CSS separately:
-
-```ts
 import 'sileo-svelte/styles.css';
 ```
 
-## CSS Customization
+`SileoState` is `success`, `loading`, `error`, `warning`, `info`, or `action`.
+`SileoClasses` targets `title`, `description`, `badge`, and `button`.
+`SileoStyles` provides `titleColor`, `descriptionColor`, `badgeColor`,
+`badgeBackground`, `buttonColor`, `buttonBackground`, and
+`buttonHoverBackground`.
 
-Override these variables globally:
+`SileoPromiseOptions<T>` requires `loading`, `success`, and `error`. It also
+accepts `id`, `action`, and `position`. Success, action, and error values can be
+options or mapping functions.
+
+## Styling
+
+The package is Tailwind-free. Override its global custom properties:
 
 ```css
 :root {
@@ -488,17 +270,51 @@ Override these variables globally:
 }
 ```
 
-`--sileo-z-index` controls the fixed toast viewport stack level. Override it if your app uses a custom overlay scale.
+Toast width is capped to the viewport with 12-pixel side margins. Its SVG,
+header, and body use the resolved custom width and height, so overrides remain
+aligned at narrow widths.
 
-Per-toast variables set via `options.styles` map to these CSS vars on each toast root:
+For one toast, use `styles` when utility-class extraction is uncertain:
 
-- `--sileo-title-color`
-- `--sileo-description-color`
-- `--sileo-badge-color`
-- `--sileo-badge-bg`
-- `--sileo-button-color`
-- `--sileo-button-bg`
-- `--sileo-button-bg-hover`
+```ts
+sileo.success({
+    title: 'Branded',
+    styles: {
+        titleColor: 'var(--foreground)',
+        badgeBackground: 'var(--primary)',
+        badgeColor: 'var(--primary-foreground)'
+    }
+});
+```
+
+If Tailwind classes appear only inside JavaScript strings, safelist them with
+the mechanism recommended for your Tailwind version.
+
+## Accessibility and motion
+
+- Viewports use a polite live region.
+- Toast headers are keyboard-focusable buttons. Enter, Space, click, or tap
+  expands and collapses the selected toast, including older stacked toasts.
+- Escape closes the expanded body and returns focus to its header.
+- Action buttons have visible focus treatment.
+- Hover pauses dismissal only on fine-pointer devices. Touch users can tap to
+  expand and swipe vertically to dismiss.
+- `prefers-reduced-motion: reduce` disables nonessential transitions and
+  animations.
+
+## Scenario lab
+
+The repository includes a deterministic browser lab for success, loading,
+error, warning, action, promise, update, scoped-default, and no-icon flows. It
+also exposes the source for each scenario. Run it locally:
+
+```bash
+bun install
+bun run dev
+```
+
+The deployed documentation URL is intentionally not listed until the project
+has a confirmed hosting target.
 
 ## Credits
 
