@@ -27,6 +27,9 @@ class IntersectionObserverMock {
     disconnect() {
         this.targets.clear();
     }
+    observes(target: Element) {
+        return this.targets.has(target);
+    }
     trigger(target: Element, isIntersecting = true) {
         this.callback(
             [{ target, isIntersecting, intersectionRatio: isIntersecting ? 1 : 0 }] as IntersectionObserverEntry[],
@@ -67,7 +70,28 @@ describe('documentation shell', () => {
         expect(getByRole('link', { name: 'Sileo Svelte home' })).toBeTruthy();
         expect(getByRole('link', { name: 'Playground' })).toBeTruthy();
         expect(getByRole('link', { name: 'API' })).toBeTruthy();
-        expect(getByRole('link', { name: /GitHub/ })).toBeTruthy();
+        const github = getByRole('link', { name: 'View Sileo Svelte on GitHub' });
+        expect(github.textContent?.trim()).toBe('↗');
+    });
+
+    test('compacts after leaving the page top and expands when returning', async () => {
+        const { getByRole, container } = render(Layout, { children });
+        await tick();
+        const sentinel = container.querySelector('[data-nav-sentinel]');
+        const navigation = getByRole('navigation', { name: 'Primary navigation' });
+
+        expect(sentinel).toBeTruthy();
+        const observer = IntersectionObserverMock.instances.find((instance) => instance.observes(sentinel!));
+        expect(observer).toBeTruthy();
+        expect(navigation.classList.contains('is-compact')).toBe(false);
+
+        observer?.trigger(sentinel!, false);
+        await tick();
+        expect(navigation.classList.contains('is-compact')).toBe(true);
+
+        observer?.trigger(sentinel!, true);
+        await tick();
+        expect(navigation.classList.contains('is-compact')).toBe(false);
     });
 
     test('marks the current observed section in navigation', async () => {
@@ -75,7 +99,7 @@ describe('documentation shell', () => {
         await tick();
         const playground = container.querySelector('#playground')!;
 
-        IntersectionObserverMock.instances[0]?.trigger(playground);
+        IntersectionObserverMock.instances.find((instance) => instance.observes(playground))?.trigger(playground);
         await tick();
 
         expect(getByRole('link', { name: 'Playground' }).getAttribute('aria-current')).toBe('location');
@@ -86,7 +110,7 @@ describe('documentation shell', () => {
         const { getByRole, container } = render(Layout, { children });
         await tick();
         const playground = container.querySelector('#playground')!;
-        const observer = IntersectionObserverMock.instances[0];
+        const observer = IntersectionObserverMock.instances.find((instance) => instance.observes(playground));
 
         observer?.trigger(playground);
         await tick();

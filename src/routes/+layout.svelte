@@ -8,16 +8,31 @@
     const playgroundHref = `${resolve('/')}#playground`;
     const apiHref = `${resolve('/')}#api`;
     let currentSection = $state<'home' | 'playground' | 'api'>('home');
+    let isCompact = $state(false);
 
     onMount(() => {
         let observer: IntersectionObserver | undefined;
+        let compactObserver: IntersectionObserver | undefined;
         let disposed = false;
         queueMicrotask(() => {
             if (disposed) return;
+            if (typeof IntersectionObserver === 'undefined') return;
+
+            const sentinel = document.querySelector('[data-nav-sentinel]');
+            if (sentinel) {
+                compactObserver = new IntersectionObserver(
+                    ([entry]) => {
+                        isCompact = !entry.isIntersecting;
+                    },
+                    { rootMargin: '-48px 0px 0px', threshold: [0, 1] }
+                );
+                compactObserver.observe(sentinel);
+            }
+
             const targets = ['playground', 'api']
                 .map((id) => document.getElementById(id))
                 .filter((target): target is HTMLElement => target !== null);
-            if (!targets.length || typeof IntersectionObserver === 'undefined') return;
+            if (!targets.length) return;
             const intersectionRatios = Object.fromEntries(targets.map((target) => [target.id, 0]));
 
             observer = new IntersectionObserver(
@@ -40,6 +55,7 @@
         return () => {
             disposed = true;
             observer?.disconnect();
+            compactObserver?.disconnect();
         };
     });
 </script>
@@ -49,9 +65,16 @@
     href="#main-content">Skip to content</a
 >
 
+<span
+    class="nav-sentinel"
+    data-nav-sentinel
+    aria-hidden="true"
+></span>
+
 <header class="site-header">
     <nav
         class="nav-island"
+        class:is-compact={isCompact}
         aria-label="Primary navigation"
     >
         <a
@@ -86,8 +109,8 @@
                 class="github-link"
                 href="https://github.com/mielsense/sileo-svelte"
                 rel="noreferrer"
+                aria-label="View Sileo Svelte on GitHub"
             >
-                GitHub
                 <span aria-hidden="true">↗</span>
             </a>
         </div>
@@ -185,8 +208,17 @@
         transform: translateY(0);
     }
 
-    .site-header {
+    .nav-sentinel {
         position: absolute;
+        top: 48px;
+        left: 0;
+        width: 1px;
+        height: 1px;
+        pointer-events: none;
+    }
+
+    .site-header {
+        position: fixed;
         z-index: 20;
         top: 0;
         right: 0;
@@ -197,18 +229,34 @@
 
     .nav-island {
         display: flex;
-        width: min(100%, 76rem);
+        width: max-content;
+        max-width: 100%;
         min-height: 48px;
         margin: 0 auto;
         padding: 4px 4px 4px 12px;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        border: 1px solid var(--surface-3);
+        border: 1px solid rgb(255 255 255 / 0%);
         border-radius: 9999px;
-        background: rgb(24 24 24 / 92%);
-        box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+        background: rgb(24 24 24 / 0%);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0%);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         pointer-events: auto;
+        transform-origin: top center;
+        transition:
+            transform 700ms var(--ease-sileo),
+            background-color 700ms var(--ease-sileo),
+            border-color 700ms var(--ease-sileo),
+            box-shadow 700ms var(--ease-sileo);
+    }
+
+    .nav-island.is-compact {
+        border-color: rgb(255 255 255 / 12%);
+        background: rgb(24 24 24 / 80%);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+        transform: translateY(-8px);
     }
 
     .wordmark,
@@ -273,8 +321,12 @@
     }
 
     .nav-links .github-link {
+        width: 40px;
+        padding: 8px;
         background: #ffffff;
         color: #000000;
+        font-size: 18px;
+        line-height: 28px;
     }
 
     .nav-links .github-link:hover {
@@ -331,6 +383,7 @@
         }
 
         .skip-link,
+        .nav-island,
         .nav-links a {
             transition-duration: 0.01ms;
         }
