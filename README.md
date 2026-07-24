@@ -42,12 +42,12 @@ npm install sileo-svelte
 
 Only one `<Toaster />` is needed in your app.
 
-| Prop       | Type                                    | Default       | Description                                                                                     |
-| ---------- | --------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
-| `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                     |
-| `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                    |
+| Prop       | Type                                    | Default       | Description                                                                                                    |
+| ---------- | --------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `position` | `SileoPosition`                         | `'top-right'` | Default viewport for new toasts. Per-toast `position` still overrides this.                                    |
+| `offset`   | `number \| string \| SileoOffsetConfig` | `undefined`   | Offset from screen edges. Number values are treated as `px`.                                                   |
 | `options`  | `Partial<SileoOptions>`                 | `undefined`   | Global defaults merged into every toast call. Per-toast fields win. `classes` and `styles` are merged per-key. |
-| `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                               |
+| `children` | `Snippet`                               | `undefined`   | Optional content rendered before toast viewports.                                                              |
 
 `SileoOffsetConfig`:
 
@@ -145,14 +145,14 @@ sileo.promise(() => fetch('/api/upload', { method: 'POST' }), {
 
 `SileoPromiseOptions<T>`:
 
-| Option     | Type                                               | Required | Description                                               |
-| ---------- | -------------------------------------------------- | -------- | --------------------------------------------------------- |
+| Option     | Type                                               | Required | Description                                                                                                |
+| ---------- | -------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
 | `id`       | `string`                                           | No       | Existing toast id to morph instead of creating a new one. Creates a new toast with this id if none exists. |
-| `loading`  | `Pick<SileoOptions, 'title' \| 'icon'>`            | Yes      | Pending state content.                                    |
-| `success`  | `SileoOptions \| ((data: T) => SileoOptions)`      | Yes      | Success state content.                                    |
-| `error`    | `SileoOptions \| ((err: unknown) => SileoOptions)` | Yes      | Error state content.                                      |
-| `action`   | `SileoOptions \| ((data: T) => SileoOptions)`      | No       | If provided, replaces `success` state.                    |
-| `position` | `SileoPosition`                                    | No       | Position override for the promise toast.                  |
+| `loading`  | `Pick<SileoOptions, 'title' \| 'icon'>`            | Yes      | Pending state content.                                                                                     |
+| `success`  | `SileoOptions \| ((data: T) => SileoOptions)`      | Yes      | Success state content.                                                                                     |
+| `error`    | `SileoOptions \| ((err: unknown) => SileoOptions)` | Yes      | Error state content.                                                                                       |
+| `action`   | `SileoOptions \| ((data: T) => SileoOptions)`      | No       | If provided, replaces `success` state.                                                                     |
+| `position` | `SileoPosition`                                    | No       | Position override for the promise toast.                                                                   |
 
 ### Update and dismissal
 
@@ -170,19 +170,19 @@ clear(position?: SileoPosition): void
 
 ## `SileoOptions`
 
-| Field         | Type                                                | Default            | Description                                             |
-| ------------- | --------------------------------------------------- | ------------------ | ------------------------------------------------------- |
-| `title`       | `string`                                            | State name         | Header title.                                           |
-| `description` | `string \| Snippet`                                 | `undefined`        | Expanded body content.                                  |
-| `position`    | `SileoPosition`                                     | Toaster `position` | Per-toast viewport override.                            |
+| Field         | Type                                                | Default            | Description                                                                                          |
+| ------------- | --------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `title`       | `string`                                            | State name         | Header title.                                                                                        |
+| `description` | `string \| Snippet`                                 | `undefined`        | Expanded body content.                                                                               |
+| `position`    | `SileoPosition`                                     | Toaster `position` | Per-toast viewport override.                                                                         |
 | `duration`    | `number \| null`                                    | `6000`             | Auto-dismiss timeout in ms. `null` keeps it persistent. Loading and action states default to `null`. |
-| `icon`        | `Snippet \| null`                                   | State icon         | Custom icon snippet; `null` hides icon.                 |
-| `classes`     | `SileoClasses`                                      | `undefined`        | Per-part class overrides.                               |
-| `styles`      | `SileoStyles`                                       | `undefined`        | Per-toast color variable overrides (Tailwind-free).     |
-| `fill`        | `string`                                            | `'#1c1c1e'`        | Toast background color.                                 |
-| `roundness`   | `number`                                            | `18`               | Corner radius.                                          |
-| `autopilot`   | `boolean \| { expand?: number; collapse?: number }` | `true`             | Automatic expand/collapse behavior.                     |
-| `button`      | `SileoButton`                                       | `undefined`        | Action button shown in expanded body.                   |
+| `icon`        | `Snippet \| null`                                   | State icon         | Custom icon snippet; `null` hides icon.                                                              |
+| `classes`     | `SileoClasses`                                      | `undefined`        | Per-part class overrides.                                                                            |
+| `styles`      | `SileoStyles`                                       | `undefined`        | Per-toast color variable overrides (Tailwind-free).                                                  |
+| `fill`        | `string`                                            | `'#1c1c1e'`        | Toast background color.                                                                              |
+| `roundness`   | `number`                                            | `18`               | Corner radius.                                                                                       |
+| `autopilot`   | `boolean \| { expand?: number; collapse?: number }` | `true`             | Automatic expand/collapse behavior.                                                                  |
+| `button`      | `SileoButton`                                       | `undefined`        | Action button shown in expanded body.                                                                |
 
 `SileoClasses`:
 
