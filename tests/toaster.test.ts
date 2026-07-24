@@ -8,11 +8,15 @@ import { store } from '../src/lib/store.svelte.ts';
 describe('Toaster', () => {
     beforeEach(() => {
         store.toasts = [];
+        store.position = 'top-right';
+        store.globalOptions = undefined;
     });
 
     afterEach(() => {
         cleanup();
         store.toasts = [];
+        store.position = 'top-right';
+        store.globalOptions = undefined;
     });
 
     test('renders a toast through Toaster', async () => {

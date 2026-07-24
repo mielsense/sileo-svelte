@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { sileo, store } from '../src/lib/store.svelte.ts';
+import { sileo } from '../src/lib/index.js';
+import { store } from '../src/lib/store.svelte.ts';
+
+const deferred = <T>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+        resolve = resolvePromise;
+    });
+
+    return { promise, resolve };
+};
 
 describe('sileo store', () => {
     beforeEach(() => {
@@ -57,23 +67,47 @@ describe('sileo store', () => {
         ]);
     });
 
-    test('uses a supplied promise id to morph a loading toast', async () => {
-        const promise = sileo.promise(Promise.resolve('complete'), {
+    test('replaces a pending promise toast with the same supplied id', async () => {
+        const first = deferred<string>();
+        const second = deferred<string>();
+        const firstPromise = sileo.promise(first.promise, {
             id: 'stable',
-            loading: { title: 'Loading' },
-            success: (result) => ({ title: `Completed: ${result}` }),
+            position: 'top-left',
+            loading: { title: 'First loading' },
+            success: { title: 'First complete' },
+            error: { title: 'Failed' }
+        });
+        const firstToast = store.toasts[0];
+        expect(firstToast).toEqual(
+            expect.objectContaining({ id: 'stable', title: 'First loading', state: 'loading', duration: null })
+        );
+        const firstInstanceId = firstToast.instanceId;
+
+        const secondPromise = sileo.promise(second.promise, {
+            id: 'stable',
+            position: 'bottom-left',
+            loading: { title: 'Second loading' },
+            success: { title: 'Second complete' },
             error: { title: 'Failed' }
         });
 
-        expect(store.toasts).toContainEqual(
-            expect.objectContaining({ id: 'stable', title: 'Loading', state: 'loading' })
-        );
-
-        await expect(promise).resolves.toBe('complete');
-        expect(store.toasts).toHaveLength(1);
-        expect(store.toasts[0]).toEqual(
-            expect.objectContaining({ id: 'stable', title: 'Completed: complete', state: 'success' })
-        );
+        try {
+            expect(store.toasts).toHaveLength(1);
+            expect(store.toasts[0]).toEqual(
+                expect.objectContaining({
+                    id: 'stable',
+                    title: 'Second loading',
+                    state: 'loading',
+                    position: 'bottom-left',
+                    duration: null
+                })
+            );
+            expect(store.toasts[0].instanceId).not.toBe(firstInstanceId);
+        } finally {
+            first.resolve('first');
+            second.resolve('second');
+            await Promise.all([firstPromise, secondPromise]);
+        }
     });
 
     test('dismiss removes only the requested toast after its exit transition', () => {
