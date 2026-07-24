@@ -76,6 +76,24 @@ describe('documentation shell', () => {
         expect(getByRole('link', { name: 'API' }).hasAttribute('aria-current')).toBe(false);
     });
 
+    test('restores Home as current after leaving tracked documentation sections', async () => {
+        const { getByRole, container } = render(Layout, { children });
+        await tick();
+        const playground = container.querySelector('#playground')!;
+        const observer = IntersectionObserverMock.instances[0];
+
+        observer?.trigger(playground);
+        await tick();
+        expect(getByRole('link', { name: 'Playground' }).getAttribute('aria-current')).toBe('location');
+
+        observer?.trigger(playground, false);
+        await tick();
+
+        expect(getByRole('link', { name: 'Sileo Svelte home' }).getAttribute('aria-current')).toBe('page');
+        expect(getByRole('link', { name: 'Playground' }).hasAttribute('aria-current')).toBe(false);
+        expect(getByRole('link', { name: 'API' }).hasAttribute('aria-current')).toBe(false);
+    });
+
     test('renders complete canonical and social metadata', () => {
         render(Page);
 

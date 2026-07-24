@@ -133,6 +133,46 @@ describe('documentation playground', () => {
             })
         );
     });
+
+    test.each([
+        { label: 'Async promise', retry: false },
+        { label: 'Action and retry', retry: true }
+    ])('does not let a pending $label completion overwrite a newly selected scenario', async ({ label, retry }) => {
+        vi.useFakeTimers();
+        const { getByRole, container } = render(Page);
+
+        await fireEvent.click(getByRole('button', { name: label }));
+        await fireEvent.click(getByRole('button', { name: `Run ${label} example` }));
+        if (retry) {
+            await fireEvent.click(getByRole('button', { name: 'Retry' }));
+        }
+
+        const preview = container.querySelector('[data-playground-preview]');
+        expect(preview?.textContent).toContain(retry ? 'Retrying payment' : 'Uploading build');
+        expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+        await fireEvent.click(getByRole('button', { name: 'Core states' }));
+        expect(preview?.textContent).toContain('Release saved');
+        await vi.advanceTimersByTimeAsync(1200);
+        await tick();
+
+        expect(getByRole('button', { name: 'Core states' }).getAttribute('aria-pressed')).toBe('true');
+        expect(preview?.querySelector('[data-sileo-toast]')?.getAttribute('data-state')).toBe('success');
+        expect(preview?.textContent).toContain('Release saved');
+        expect(preview?.textContent).not.toContain(retry ? 'Payment captured' : 'Build uploaded');
+    });
+
+    test('renders a scheduled async scenario completion in the live preview', async () => {
+        vi.useFakeTimers();
+        const { getByRole, container } = render(Page);
+
+        await fireEvent.click(getByRole('button', { name: 'Async promise' }));
+        await fireEvent.click(getByRole('button', { name: 'Run Async promise example' }));
+        await vi.advanceTimersByTimeAsync(900);
+        await tick();
+
+        expect(container.querySelector('[data-playground-preview]')?.textContent).toContain('Build uploaded');
+    });
 });
 
 describe('scenario contracts', () => {

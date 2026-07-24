@@ -199,12 +199,22 @@ type SileoPosition =
         scenarioPreviewKey = `scenario-${++previewSequence}`;
     }
 
+    function clearScenarioCompletion() {
+        if (previewTimer === undefined) return;
+        clearTimeout(previewTimer);
+        previewTimer = undefined;
+    }
+
     function scheduleScenarioCompletion(completion: ScenarioCompletion) {
-        if (previewTimer !== undefined) clearTimeout(previewTimer);
-        previewTimer = window.setTimeout(() => updateScenarioPreview(completion.final), completion.delayMs);
+        clearScenarioCompletion();
+        previewTimer = window.setTimeout(() => {
+            previewTimer = undefined;
+            updateScenarioPreview(completion.final);
+        }, completion.delayMs);
     }
 
     function selectScenario(id: string) {
+        clearScenarioCompletion();
         selectedScenarioId = id;
         scenarioCopyStatus = '';
         scenarioExecutionId = undefined;
@@ -213,7 +223,7 @@ type SileoPosition =
     }
 
     function runScenario() {
-        if (previewTimer !== undefined) clearTimeout(previewTimer);
+        clearScenarioCompletion();
         const currentContext = context();
         updateScenarioPreview(selectedScenario.initial(currentContext));
         scenarioExecutionId = selectedScenario.run(currentContext);
@@ -262,7 +272,7 @@ type SileoPosition =
     }
 
     onDestroy(() => {
-        if (previewTimer !== undefined) clearTimeout(previewTimer);
+        clearScenarioCompletion();
         if (heroTimer !== undefined) clearTimeout(heroTimer);
     });
 

@@ -18,15 +18,19 @@
                 .map((id) => document.getElementById(id))
                 .filter((target): target is HTMLElement => target !== null);
             if (!targets.length || typeof IntersectionObserver === 'undefined') return;
+            const intersectionRatios = Object.fromEntries(targets.map((target) => [target.id, 0]));
 
             observer = new IntersectionObserver(
                 (entries) => {
-                    const visible = entries
-                        .filter((entry) => entry.isIntersecting)
-                        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-                    if (visible?.target.id === 'playground' || visible?.target.id === 'api') {
-                        currentSection = visible.target.id;
+                    for (const entry of entries) {
+                        intersectionRatios[entry.target.id] = entry.isIntersecting ? entry.intersectionRatio : 0;
                     }
+
+                    const visible = targets
+                        .map((target) => ({ id: target.id, ratio: intersectionRatios[target.id] ?? 0 }))
+                        .filter((entry) => entry.ratio > 0)
+                        .sort((a, b) => b.ratio - a.ratio)[0];
+                    currentSection = visible?.id === 'playground' || visible?.id === 'api' ? visible.id : 'home';
                 },
                 { rootMargin: '-16% 0px -68% 0px', threshold: [0, 0.25, 0.75] }
             );
