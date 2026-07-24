@@ -146,6 +146,150 @@ describe('sileo store', () => {
         expect(store.toasts.map((toast) => toast.id)).not.toContain(top);
     });
 
-    test.todo('preserves omitted state and options during partial updates');
-    test.todo('rejects a synchronous promise factory while transitioning the toast to error');
+    test('preserves omitted state and options during partial updates', () => {
+        const button = { title: 'Cancel', onClick: () => undefined };
+        const id = sileo.loading({
+            title: 'Uploading',
+            description: '10%',
+            position: 'bottom-left',
+            fill: 'linear-gradient(red, blue)',
+            button,
+            classes: { title: 'upload-title', badge: 'upload-badge' },
+            styles: { titleColor: 'red', badgeColor: 'blue' }
+        });
+
+        sileo.update(id, { title: 'Uploading 50%' });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                title: 'Uploading 50%',
+                description: '10%',
+                state: 'loading',
+                position: 'bottom-left',
+                fill: 'linear-gradient(red, blue)',
+                button,
+                classes: { title: 'upload-title', badge: 'upload-badge' },
+                styles: { titleColor: 'red', badgeColor: 'blue' }
+            })
+        );
+    });
+
+    test('treats an undefined description in a partial update as omitted', () => {
+        const id = sileo.show({ title: 'Uploading', description: '10%' });
+
+        sileo.update(id, { description: undefined });
+
+        expect(store.toasts.find((toast) => toast.id === id)?.description).toBe('10%');
+    });
+
+    test('merges nested update maps and replaces explicitly supplied fields', () => {
+        const id = sileo.action({
+            title: 'Review',
+            position: 'top-left',
+            classes: { title: 'old-title', badge: 'old-badge' },
+            styles: { titleColor: 'red', badgeColor: 'blue' }
+        });
+
+        sileo.update(id, {
+            state: 'success',
+            position: 'bottom-right',
+            classes: { title: 'new-title' },
+            styles: { badgeColor: 'green' }
+        });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                state: 'success',
+                position: 'bottom-right',
+                duration: 6000,
+                classes: { title: 'new-title', badge: 'old-badge' },
+                styles: { titleColor: 'red', badgeColor: 'green' }
+            })
+        );
+    });
+
+    test('retains explicit null duration and icon while keeping autopilot disabled', () => {
+        const id = sileo.show({ title: 'Waiting', duration: null, icon: null, autopilot: false });
+
+        sileo.update(id, { title: 'Still waiting' });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                title: 'Still waiting',
+                duration: null,
+                icon: null,
+                autopilot: false,
+                autoExpandDelayMs: undefined,
+                autoCollapseDelayMs: undefined
+            })
+        );
+    });
+
+    test('rejects a synchronous promise factory while transitioning the toast to error', async () => {
+        const error = new Error('offline');
+        const returned = sileo.promise(
+            () => {
+                throw error;
+            },
+            {
+                loading: { title: 'Uploading' },
+                success: { title: 'Uploaded' },
+                error: { title: 'Upload failed' }
+            }
+        );
+
+        await expect(returned).rejects.toBe(error);
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(
+            expect.objectContaining({ title: 'Upload failed', state: 'error', duration: 6000 })
+        );
+    });
+
+    test('preserves an asynchronous rejection while transitioning the toast to error', async () => {
+        const error = new Error('offline');
+        const returned = sileo.promise(Promise.reject(error), {
+            loading: { title: 'Uploading' },
+            success: { title: 'Uploaded' },
+            error: (reason) => ({ title: `Failed: ${(reason as Error).message}` })
+        });
+
+        await expect(returned).rejects.toBe(error);
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(expect.objectContaining({ title: 'Failed: offline', state: 'error' }));
+    });
+
+    test('preserves a promise resolution while transitioning the toast to success', async () => {
+        const result = { file: 'report.pdf' };
+        const returned = sileo.promise(Promise.resolve(result), {
+            id: 'upload',
+            loading: { title: 'Uploading' },
+            success: (data) => ({ title: `Uploaded ${data.file}` }),
+            error: { title: 'Upload failed' }
+        });
+
+        await expect(returned).resolves.toBe(result);
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts).toEqual([
+            expect.objectContaining({ id: 'upload', title: 'Uploaded report.pdf', state: 'success', duration: 6000 })
+        ]);
+    });
+
+    test('uses the action mapping instead of success after a promise resolves', async () => {
+        const returned = sileo.promise(Promise.resolve('report.pdf'), {
+            loading: { title: 'Uploading' },
+            success: { title: 'Uploaded' },
+            action: (file) => ({ title: `Open ${file}` }),
+            error: { title: 'Upload failed' }
+        });
+
+        await expect(returned).resolves.toBe('report.pdf');
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(
+            expect.objectContaining({ title: 'Open report.pdf', state: 'action', duration: null })
+        );
+    });
 });

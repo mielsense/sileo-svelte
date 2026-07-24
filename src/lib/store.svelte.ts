@@ -129,6 +129,27 @@ const buildSileoItem = (merged: InternalSileoOptions, id: string, fallbackPositi
     };
 };
 
+const mergeUpdateOptions = (existing: SileoItem, options: InternalSileoOptions): InternalSileoOptions => {
+    const existingOptions = Object.fromEntries(
+        Object.entries(existing).filter(
+            ([key]) =>
+                !['id', 'instanceId', 'closing', 'exiting', 'autoExpandDelayMs', 'autoCollapseDelayMs'].includes(key)
+        )
+    ) as InternalSileoOptions;
+    const definedOptions = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
+    const merged = mergeScopedOptions(existingOptions, definedOptions as InternalSileoOptions);
+
+    if (
+        definedOptions.state !== undefined &&
+        definedOptions.state !== existing.state &&
+        definedOptions.duration === undefined
+    ) {
+        delete merged.duration;
+    }
+
+    return merged;
+};
+
 const createToast = (options: InternalSileoOptions) => {
     const live = store.toasts.filter((t) => !t.exiting);
     const merged = mergeOptions(options);
@@ -150,7 +171,7 @@ const updateToast = (id: string, options: InternalSileoOptions) => {
     const existing = store.toasts.find((t) => t.id === id);
     if (!existing) return;
 
-    const item = buildSileoItem(mergeOptions(options), id, existing.position);
+    const item = buildSileoItem(mergeUpdateOptions(existing, options), id, existing.position);
     store.update((prev) => prev.map((t) => (t.id === id ? item : t)));
 };
 
@@ -228,24 +249,30 @@ const createSileoApi = (scopedDefaults?: Partial<SileoOptions>): SileoApi => {
                 }));
             }
 
-            const p = typeof promise === 'function' ? promise() : promise;
+            const p: Promise<T> =
+                typeof promise === 'function' ? Promise.resolve().then(() => promise()) : Promise.resolve(promise);
 
-            p.then((data) => {
-                if (opts.action) {
-                    const actionOpts = withDefaults(
-                        typeof opts.action === 'function' ? opts.action(data) : opts.action
-                    );
-                    updateToast(id, { ...actionOpts, state: 'action', id });
-                } else {
-                    const successOpts = withDefaults(
-                        typeof opts.success === 'function' ? opts.success(data) : opts.success
-                    );
-                    updateToast(id, { ...successOpts, state: 'success', id });
-                }
-            }).catch((err) => {
-                const errorOpts = withDefaults(typeof opts.error === 'function' ? opts.error(err) : opts.error);
-                updateToast(id, { ...errorOpts, state: 'error', id });
-            });
+            void p
+                .then(
+                    (data) => {
+                        if (opts.action) {
+                            const actionOpts = withDefaults(
+                                typeof opts.action === 'function' ? opts.action(data) : opts.action
+                            );
+                            updateToast(id, { ...actionOpts, state: 'action', id });
+                        } else {
+                            const successOpts = withDefaults(
+                                typeof opts.success === 'function' ? opts.success(data) : opts.success
+                            );
+                            updateToast(id, { ...successOpts, state: 'success', id });
+                        }
+                    },
+                    (err) => {
+                        const errorOpts = withDefaults(typeof opts.error === 'function' ? opts.error(err) : opts.error);
+                        updateToast(id, { ...errorOpts, state: 'error', id });
+                    }
+                )
+                .catch(() => {});
 
             return p;
         },
