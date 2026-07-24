@@ -8,15 +8,11 @@ import { store } from '../src/lib/store.svelte.ts';
 describe('Toaster', () => {
     beforeEach(() => {
         store.toasts = [];
-        store.position = 'top-right';
-        store.globalOptions = undefined;
     });
 
     afterEach(() => {
         cleanup();
         store.toasts = [];
-        store.position = 'top-right';
-        store.globalOptions = undefined;
     });
 
     test('renders a toast through Toaster', async () => {
@@ -26,6 +22,25 @@ describe('Toaster', () => {
         await tick();
 
         expect(getByText('Saved')).toBeTruthy();
+    });
+
+    test('applies position and global options from Toaster', async () => {
+        render(Toaster, {
+            position: 'bottom-left',
+            options: { fill: '#123456', roundness: 24 }
+        });
+
+        await tick();
+        const id = sileo.show('Configured');
+
+        expect(store.toasts).toContainEqual(
+            expect.objectContaining({
+                id,
+                position: 'bottom-left',
+                fill: '#123456',
+                roundness: 24
+            })
+        );
     });
 
     test('morphs the title and description after an update', async () => {

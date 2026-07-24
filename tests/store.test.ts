@@ -5,15 +5,11 @@ describe('sileo store', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         store.toasts = [];
-        store.position = 'top-right';
-        store.globalOptions = undefined;
     });
 
     afterEach(() => {
         vi.useRealTimers();
         store.toasts = [];
-        store.position = 'top-right';
-        store.globalOptions = undefined;
     });
 
     test('returns unique string ids when creating toasts', () => {
@@ -23,22 +19,6 @@ describe('sileo store', () => {
         expect(first).toEqual(expect.any(String));
         expect(second).toEqual(expect.any(String));
         expect(first).not.toBe(second);
-    });
-
-    test('applies the configured position and global options', () => {
-        store.position = 'bottom-left';
-        store.globalOptions = { fill: '#123456', roundness: 24 };
-
-        const id = sileo.show('Configured');
-
-        expect(store.toasts).toContainEqual(
-            expect.objectContaining({
-                id,
-                position: 'bottom-left',
-                fill: '#123456',
-                roundness: 24
-            })
-        );
     });
 
     test('merges scoped classes and styles by key', () => {
@@ -77,13 +57,22 @@ describe('sileo store', () => {
         ]);
     });
 
-    test('replaces a toast that uses an explicit id', () => {
-        sileo.show({ id: 'stable', title: 'First' } as Parameters<typeof sileo.show>[0]);
-        sileo.success({ id: 'stable', title: 'Replacement' } as Parameters<typeof sileo.success>[0]);
+    test('uses a supplied promise id to morph a loading toast', async () => {
+        const promise = sileo.promise(Promise.resolve('complete'), {
+            id: 'stable',
+            loading: { title: 'Loading' },
+            success: (result) => ({ title: `Completed: ${result}` }),
+            error: { title: 'Failed' }
+        });
 
+        expect(store.toasts).toContainEqual(
+            expect.objectContaining({ id: 'stable', title: 'Loading', state: 'loading' })
+        );
+
+        await expect(promise).resolves.toBe('complete');
         expect(store.toasts).toHaveLength(1);
         expect(store.toasts[0]).toEqual(
-            expect.objectContaining({ id: 'stable', title: 'Replacement', state: 'success' })
+            expect.objectContaining({ id: 'stable', title: 'Completed: complete', state: 'success' })
         );
     });
 
