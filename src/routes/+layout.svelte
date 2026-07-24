@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { resolve } from '$app/paths';
     import { Toaster } from '$lib/index.js';
     import '$lib/styles.css';
@@ -6,6 +7,37 @@
     let { children } = $props();
     const playgroundHref = `${resolve('/')}#playground`;
     const apiHref = `${resolve('/')}#api`;
+    let currentSection = $state<'home' | 'playground' | 'api'>('home');
+
+    onMount(() => {
+        let observer: IntersectionObserver | undefined;
+        let disposed = false;
+        queueMicrotask(() => {
+            if (disposed) return;
+            const targets = ['playground', 'api']
+                .map((id) => document.getElementById(id))
+                .filter((target): target is HTMLElement => target !== null);
+            if (!targets.length || typeof IntersectionObserver === 'undefined') return;
+
+            observer = new IntersectionObserver(
+                (entries) => {
+                    const visible = entries
+                        .filter((entry) => entry.isIntersecting)
+                        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+                    if (visible?.target.id === 'playground' || visible?.target.id === 'api') {
+                        currentSection = visible.target.id;
+                    }
+                },
+                { rootMargin: '-16% 0px -68% 0px', threshold: [0, 0.25, 0.75] }
+            );
+            for (const target of targets) observer.observe(target);
+        });
+
+        return () => {
+            disposed = true;
+            observer?.disconnect();
+        };
+    });
 </script>
 
 <a
@@ -22,6 +54,7 @@
             class="wordmark"
             href={resolve('/')}
             aria-label="Sileo Svelte home"
+            aria-current={currentSection === 'home' ? 'page' : undefined}
         >
             <svg
                 viewBox="0 0 24 24"
@@ -35,10 +68,16 @@
             <span>Sileo Svelte</span>
         </a>
         <div class="nav-links">
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- hash is appended to the resolved base path -->
-            <a href={playgroundHref}>Playground</a>
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- hash is appended to the resolved base path -->
-            <a href={apiHref}>API</a>
+            <!-- eslint-disable svelte/no-navigation-without-resolve -- hashes are appended to the resolved base path -->
+            <a
+                href={playgroundHref}
+                aria-current={currentSection === 'playground' ? 'location' : undefined}>Playground</a
+            >
+            <a
+                href={apiHref}
+                aria-current={currentSection === 'api' ? 'location' : undefined}>API</a
+            >
+            <!-- eslint-enable svelte/no-navigation-without-resolve -->
             <a
                 class="github-link"
                 href="https://github.com/mielsense/sileo-svelte"
@@ -216,6 +255,11 @@
     }
 
     .nav-links a:hover {
+        background: var(--surface-3);
+        color: var(--text);
+    }
+
+    .nav-links a[aria-current='location'] {
         background: var(--surface-3);
         color: var(--text);
     }

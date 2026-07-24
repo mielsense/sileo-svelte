@@ -1,8 +1,10 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte';
     import type { Action } from 'svelte/action';
     import { page } from '$app/state';
-    import { sileo, type SileoPosition } from '$lib/index.js';
-    import { scenarios } from './_components/scenarios.js';
+    import Sileo from '$lib/Sileo.svelte';
+    import type { SileoButton, SileoPosition } from '$lib/index.js';
+    import { scenarios, type ScenarioCompletion, type ScenarioToast } from './_components/scenarios.js';
 
     const positions: { value: SileoPosition; label: string }[] = [
         { value: 'top-left', label: 'Top left' },
@@ -52,15 +54,78 @@ sileo.close(id);`;
 
 billing.success('Invoice paid');`;
 
+    const classesContract = `interface SileoClasses {
+    title?: string;
+    description?: string;
+    badge?: string;
+    button?: string;
+}
+
+interface SileoStyles {
+    titleColor?: string;
+    descriptionColor?: string;
+    badgeColor?: string;
+    badgeBackground?: string;
+    buttonColor?: string;
+    buttonBackground?: string;
+    buttonHoverBackground?: string;
+}`;
+
+    const buttonContract = `interface SileoButton {
+    title: string;
+    onClick: (id: string) => void;
+}
+
+type SileoState =
+    | 'success'
+    | 'loading'
+    | 'error'
+    | 'warning'
+    | 'info'
+    | 'action';
+
+type SileoPosition =
+    | 'top-left' | 'top-center' | 'top-right'
+    | 'bottom-left' | 'bottom-center' | 'bottom-right';`;
+
     let selectedScenarioId = $state('core');
     let selectedPosition = $state<SileoPosition>('top-right');
     let installStatus = $state('');
     let scenarioCopyStatus = $state('');
     let referenceCopyStatus = $state('');
+    let heroPreview = $state<ScenarioToast>({
+        state: 'success',
+        title: 'Release is live',
+        description: 'Traffic moved to v2.4 across six regions.',
+        fill: '#181818'
+    });
+    let heroPreviewKey = $state('hero-0');
+    let scenarioPreview = $state<ScenarioToast>({
+        state: 'success',
+        title: 'Release saved',
+        description: 'Draft v2.4 is ready for review.',
+        position: 'top-right'
+    });
+    let scenarioPreviewKey = $state('scenario-0');
+    let scenarioPreviewExiting = $state(false);
+    let scenarioExecutionId: string | undefined;
+    let previewSequence = 0;
+    let heroSequence = 0;
+    let previewTimer: number | undefined;
+    let heroTimer: number | undefined;
 
     const selectedScenario = $derived(scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0]);
+    const selectedSource = $derived(selectedScenario.source(selectedPosition));
     const canonicalUrl = $derived(new URL(page.url.pathname, page.url.origin).href);
     const socialImageUrl = $derived(new URL('/og-image.svg', page.url.origin).href);
+    const scenarioPreviewButton = $derived.by<SileoButton | undefined>(() => {
+        const button = scenarioPreview.button;
+        if (!button) return undefined;
+        return {
+            title: button.title,
+            onClick: () => handlePreviewButton()
+        };
+    });
 
     type TokenKind = 'plain' | 'keyword' | 'string' | 'comment' | 'function';
     interface CodeToken {
@@ -109,7 +174,7 @@ billing.success('Invoice paid');`;
     }
 
     async function copyScenario() {
-        scenarioCopyStatus = (await writeClipboard(selectedScenario.code))
+        scenarioCopyStatus = (await writeClipboard(selectedSource))
             ? `${selectedScenario.label} example copied`
             : `Could not copy the ${selectedScenario.label} example`;
     }
@@ -120,28 +185,86 @@ billing.success('Invoice paid');`;
             : `Could not copy ${label.toLowerCase()}`;
     }
 
-    function runScenario() {
-        selectedScenario.run({
+    function context() {
+        return {
             position: selectedPosition,
             richDescription,
             richIcon
-        });
+        };
+    }
+
+    function updateScenarioPreview(next: ScenarioToast) {
+        scenarioPreview = next;
+        scenarioPreviewExiting = false;
+        scenarioPreviewKey = `scenario-${++previewSequence}`;
+    }
+
+    function scheduleScenarioCompletion(completion: ScenarioCompletion) {
+        if (previewTimer !== undefined) clearTimeout(previewTimer);
+        previewTimer = window.setTimeout(() => updateScenarioPreview(completion.final), completion.delayMs);
+    }
+
+    function selectScenario(id: string) {
+        selectedScenarioId = id;
+        scenarioCopyStatus = '';
+        scenarioExecutionId = undefined;
+        const next = scenarios.find((scenario) => scenario.id === id);
+        if (next) updateScenarioPreview(next.initial(context()));
+    }
+
+    function runScenario() {
+        if (previewTimer !== undefined) clearTimeout(previewTimer);
+        const currentContext = context();
+        updateScenarioPreview(selectedScenario.initial(currentContext));
+        scenarioExecutionId = selectedScenario.run(currentContext);
+        if (selectedScenario.completion?.trigger === 'run') {
+            scheduleScenarioCompletion(selectedScenario.completion);
+        }
+    }
+
+    function handlePreviewButton() {
+        if (scenarioExecutionId) scenarioPreview.button?.onClick(scenarioExecutionId);
+        const completion = selectedScenario.completion;
+        if (completion?.trigger === 'button') {
+            if (completion.pending) updateScenarioPreview(completion.pending);
+            scheduleScenarioCompletion(completion);
+        } else {
+            scenarioPreviewExiting = true;
+        }
+    }
+
+    function previewAlignment(position: SileoPosition): 'left' | 'center' | 'right' {
+        return position.endsWith('left') ? 'left' : position.endsWith('right') ? 'right' : 'center';
+    }
+
+    function previewExpansion(position: SileoPosition): 'top' | 'bottom' {
+        return position.startsWith('top') ? 'bottom' : 'top';
     }
 
     function runHeroFlow() {
-        const id = sileo.loading({
+        if (heroTimer !== undefined) clearTimeout(heroTimer);
+        heroPreview = {
+            state: 'loading',
             title: 'Preparing preview',
-            position: 'top-right'
-        });
+            fill: '#181818'
+        };
+        heroPreviewKey = `hero-${++heroSequence}`;
 
-        setTimeout(() => {
-            sileo.update(id, {
+        heroTimer = window.setTimeout(() => {
+            heroPreview = {
                 state: 'success',
                 title: 'Motion ready',
-                description: 'The same toast changed state in place.'
-            });
+                description: 'The same toast changed state in place.',
+                fill: '#181818'
+            };
+            heroPreviewKey = `hero-${++heroSequence}`;
         }, 900);
     }
+
+    onDestroy(() => {
+        if (previewTimer !== undefined) clearTimeout(previewTimer);
+        if (heroTimer !== undefined) clearTimeout(heroTimer);
+    });
 
     const reveal: Action<HTMLElement> = (node) => {
         const prefersReducedMotion =
@@ -287,24 +410,25 @@ billing.success('Invoice paid');`;
             <div class="hero-stage hero-enter enter-stage">
                 <div class="stage-axis axis-top">
                     <span>state</span>
-                    <span>success</span>
+                    <span>{heroPreview.state}</span>
                 </div>
-                <div class="toast-specimen">
-                    <div class="toast-topline">
-                        <span
-                            class="state-mark"
-                            aria-hidden="true">✓</span
-                        >
-                        <strong>Release is live</strong>
-                        <span class="toast-time">now</span>
-                    </div>
-                    <p>Traffic moved to v2.4 across six regions.</p>
-                    <div
-                        class="toast-progress"
-                        aria-hidden="true"
-                    >
-                        <span></span>
-                    </div>
+                <div
+                    class="toast-host hero-toast-host"
+                    data-hero-preview
+                >
+                    <Sileo
+                        id="hero-preview"
+                        className="embedded-toast"
+                        toastState={heroPreview.state}
+                        title={heroPreview.title}
+                        description={heroPreview.description}
+                        fill={heroPreview.fill}
+                        refreshKey={heroPreviewKey}
+                        position="center"
+                        expand="bottom"
+                        canExpand
+                        autoExpandDelayMs={heroPreview.state === 'loading' ? undefined : 120}
+                    />
                 </div>
                 <div class="stage-axis axis-bottom">
                     <span>motion</span>
@@ -360,15 +484,33 @@ billing.success('Invoice paid');`;
                         {/each}
                     </div>
                     <div
-                        class="stage-diagram"
-                        aria-hidden="true"
+                        class="toast-host playground-toast-host"
+                        class:at-top={selectedPosition.startsWith('top')}
+                        class:at-bottom={selectedPosition.startsWith('bottom')}
+                        class:at-left={selectedPosition.endsWith('left')}
+                        class:at-center={selectedPosition.endsWith('center')}
+                        class:at-right={selectedPosition.endsWith('right')}
+                        data-playground-preview
                     >
-                        <span class:active={selectedPosition === 'top-left'}></span>
-                        <span class:active={selectedPosition === 'top-center'}></span>
-                        <span class:active={selectedPosition === 'top-right'}></span>
-                        <span class:active={selectedPosition === 'bottom-left'}></span>
-                        <span class:active={selectedPosition === 'bottom-center'}></span>
-                        <span class:active={selectedPosition === 'bottom-right'}></span>
+                        <Sileo
+                            id="scenario-preview"
+                            className="embedded-toast"
+                            toastState={scenarioPreview.state}
+                            title={scenarioPreview.title}
+                            description={scenarioPreview.description}
+                            icon={scenarioPreview.icon}
+                            fill={scenarioPreview.fill}
+                            styles={scenarioPreview.styles}
+                            classes={scenarioPreview.classes}
+                            button={scenarioPreviewButton}
+                            roundness={scenarioPreview.roundness}
+                            exiting={scenarioPreviewExiting}
+                            refreshKey={scenarioPreviewKey}
+                            position={previewAlignment(selectedPosition)}
+                            expand={previewExpansion(selectedPosition)}
+                            canExpand
+                            autoExpandDelayMs={scenarioPreview.state === 'loading' ? undefined : 120}
+                        />
                     </div>
                 </div>
             </aside>
@@ -384,10 +526,7 @@ billing.success('Invoice paid');`;
                             aria-label={scenario.label}
                             aria-pressed={selectedScenarioId === scenario.id}
                             class:active={selectedScenarioId === scenario.id}
-                            onclick={() => {
-                                selectedScenarioId = scenario.id;
-                                scenarioCopyStatus = '';
-                            }}
+                            onclick={() => selectScenario(scenario.id)}
                         >
                             <span>{String(index + 1).padStart(2, '0')}</span>
                             <strong>{scenario.label}</strong>
@@ -396,60 +535,68 @@ billing.success('Invoice paid');`;
                     {/each}
                 </nav>
 
-                <article
-                    class="scenario-detail"
+                <p
+                    class="scenario-announcement"
                     aria-live="polite"
                 >
-                    <div class="scenario-copy">
-                        <p class="eyebrow">{selectedScenario.eyebrow}</p>
-                        <h3>{selectedScenario.label}</h3>
-                        <p>{selectedScenario.outcome}</p>
-                        <dl class="parameter-list">
-                            {#each selectedScenario.parameters as parameter (parameter)}
-                                {@const [name, value] = parameter.split(': ')}
-                                <div>
-                                    <dt>{name}</dt>
-                                    <dd>{value}</dd>
-                                </div>
-                            {/each}
-                        </dl>
-                    </div>
+                    {selectedScenario.label} selected
+                </p>
+                {#key selectedScenario.id}
+                    <article
+                        class="scenario-detail scenario-enter"
+                        data-scenario-detail
+                    >
+                        <div class="scenario-copy">
+                            <p class="eyebrow">{selectedScenario.eyebrow}</p>
+                            <h3>{selectedScenario.label}</h3>
+                            <p>{selectedScenario.outcome}</p>
+                            <dl class="parameter-list">
+                                {#each selectedScenario.parameters as parameter (parameter)}
+                                    {@const [name, value] = parameter.split(': ')}
+                                    <div>
+                                        <dt>{name}</dt>
+                                        <dd>{value}</dd>
+                                    </div>
+                                {/each}
+                            </dl>
+                        </div>
 
-                    <div class="code-plane">
-                        <div class="code-toolbar">
-                            <span>example.svelte</span>
+                        <div class="code-plane">
+                            <div class="code-toolbar">
+                                <span>example.svelte</span>
+                                <button
+                                    type="button"
+                                    aria-label={`Copy ${selectedScenario.label} example`}
+                                    onclick={copyScenario}>Copy code</button
+                                >
+                            </div>
+                            <pre
+                                data-scenario-source
+                                aria-label={`${selectedScenario.label} source code`}><code
+                                    >{#each tokenize(selectedSource) as token, tokenIndex (tokenIndex)}<span
+                                            class:code-keyword={token.kind === 'keyword'}
+                                            class:code-string={token.kind === 'string'}
+                                            class:code-comment={token.kind === 'comment'}
+                                            class:code-function={token.kind === 'function'}>{token.text}</span
+                                        >{/each}</code
+                                ></pre>
+                        </div>
+                        <div class="scenario-actions">
+                            <p
+                                class="copy-status"
+                                aria-live="polite"
+                            >
+                                {scenarioCopyStatus}
+                            </p>
                             <button
+                                class="primary-button"
                                 type="button"
-                                aria-label={`Copy ${selectedScenario.label} example`}
-                                onclick={copyScenario}>Copy code</button
+                                aria-label={`Run ${selectedScenario.label} example`}
+                                onclick={runScenario}>Run example</button
                             >
                         </div>
-                        <pre
-                            data-scenario-source
-                            aria-label={`${selectedScenario.label} source code`}><code
-                                >{#each tokenize(selectedScenario.code) as token, tokenIndex (tokenIndex)}<span
-                                        class:code-keyword={token.kind === 'keyword'}
-                                        class:code-string={token.kind === 'string'}
-                                        class:code-comment={token.kind === 'comment'}
-                                        class:code-function={token.kind === 'function'}>{token.text}</span
-                                    >{/each}</code
-                            ></pre>
-                    </div>
-                    <div class="scenario-actions">
-                        <p
-                            class="copy-status"
-                            aria-live="polite"
-                        >
-                            {scenarioCopyStatus}
-                        </p>
-                        <button
-                            class="primary-button"
-                            type="button"
-                            aria-label={`Run ${selectedScenario.label} example`}
-                            onclick={runScenario}>Run example</button
-                        >
-                    </div>
-                </article>
+                    </article>
+                {/key}
             </div>
         </div>
     </section>
@@ -628,21 +775,28 @@ billing.success('Invoice paid');`;
 
         <div class="api-block">
             <h3>Creation and lifecycle</h3>
-            <div class="method-list">
-                <code>show</code>
-                <code>success</code>
-                <code>error</code>
-                <code>warning</code>
-                <code>info</code>
-                <code>action</code>
-                <code>loading</code>
-                <code>promise</code>
-                <code>with</code>
-                <code>update</code>
-                <code>dismiss</code>
-                <code>close</code>
-                <code>clear</code>
+            <div class="signature-list">
+                <code>show(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>success(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>error(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>warning(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>info(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>action(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code>loading(input: SileoInput, description?: SileoOptions['description']): string</code>
+                <code
+                    >promise&lt;T&gt;(promise: Promise&lt;T&gt; | (() =&gt; Promise&lt;T&gt;), opts:
+                    SileoPromiseOptions&lt;T&gt;): Promise&lt;T&gt;</code
+                >
+                <code>with(defaults: Partial&lt;SileoOptions&gt;): SileoApi</code>
+                <code>update(id: string, opts: SileoOptions &amp; &#123; state?: SileoState &#125;): void</code>
+                <code>dismiss(id: string): void</code>
+                <code>close(id: string): void</code>
+                <code>clear(position?: SileoPosition): void</code>
             </div>
+            <p class="contract-note">
+                Creation helpers return the toast id. <code>promise</code> resolves or rejects with the original
+                operation, while <code>update</code> keeps the supplied id and viewport.
+            </p>
         </div>
 
         <div class="api-block">
@@ -659,9 +813,10 @@ billing.success('Invoice paid');`;
                             ></tr
                         >
                         <tr
-                            ><td><code>offset</code></td><td>number, string, config</td><td>undefined</td><td
-                                >Viewport edge offsets.</td
-                            ></tr
+                            ><td><code>offset</code></td><td
+                                ><code>number | string | Partial&lt;&#123; top; right; bottom; left &#125;&gt;</code
+                                ></td
+                            ><td>undefined</td><td>Viewport edge offsets.</td></tr
                         >
                         <tr
                             ><td><code>options</code></td><td><code>Partial&lt;SileoOptions&gt;</code></td><td
@@ -687,21 +842,75 @@ billing.success('Invoice paid');`;
                     </thead>
                     <tbody>
                         <tr><td><code>title</code></td><td>string</td><td>State name</td></tr>
-                        <tr><td><code>description</code></td><td>string or Snippet</td><td>undefined</td></tr>
+                        <tr
+                            ><td><code>description</code></td><td><code>string | Snippet</code></td><td>undefined</td
+                            ></tr
+                        >
                         <tr
                             ><td><code>position</code></td><td><code>SileoPosition</code></td><td>Toaster position</td
                             ></tr
                         >
-                        <tr><td><code>duration</code></td><td>number or null</td><td>6000</td></tr>
-                        <tr><td><code>icon</code></td><td>Snippet or null</td><td>State icon</td></tr>
+                        <tr><td><code>duration</code></td><td><code>number | null</code></td><td>6000</td></tr>
+                        <tr><td><code>icon</code></td><td><code>Snippet | null</code></td><td>State icon</td></tr>
                         <tr><td><code>classes</code></td><td><code>SileoClasses</code></td><td>undefined</td></tr>
                         <tr><td><code>styles</code></td><td><code>SileoStyles</code></td><td>undefined</td></tr>
                         <tr><td><code>fill</code></td><td>string</td><td>#1c1c1e</td></tr>
                         <tr><td><code>roundness</code></td><td>number</td><td>18</td></tr>
-                        <tr><td><code>autopilot</code></td><td>boolean or timing config</td><td>true</td></tr>
+                        <tr
+                            ><td><code>autopilot</code></td><td
+                                ><code>boolean | &#123; expand?: number; collapse?: number &#125;</code></td
+                            ><td>true</td></tr
+                        >
                         <tr><td><code>button</code></td><td><code>SileoButton</code></td><td>undefined</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <div class="api-block">
+            <h3><code>SileoPromiseOptions&lt;T&gt;</code></h3>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr><th>Field</th><th>Contract</th><th>Required</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>id</code></td><td>Existing toast id to reuse.</td><td>No</td></tr>
+                        <tr
+                            ><td><code>loading</code></td><td
+                                ><code>Pick&lt;SileoOptions, 'title' | 'icon'&gt;</code></td
+                            ><td>Yes</td></tr
+                        >
+                        <tr
+                            ><td><code>success</code></td><td
+                                ><code>SileoOptions | ((data: T) =&gt; SileoOptions)</code></td
+                            ><td>Yes</td></tr
+                        >
+                        <tr
+                            ><td><code>error</code></td><td
+                                ><code>SileoOptions | ((error: unknown) =&gt; SileoOptions)</code></td
+                            ><td>Yes</td></tr
+                        >
+                        <tr
+                            ><td><code>action</code></td><td
+                                ><code>SileoOptions | ((data: T) =&gt; SileoOptions)</code>. Replaces success when
+                                provided.</td
+                            ><td>No</td></tr
+                        >
+                        <tr><td><code>position</code></td><td><code>SileoPosition</code> override.</td><td>No</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="api-block contract-grid">
+            <div>
+                <h3>Class and style fields</h3>
+                <pre aria-label="Class and style contracts"><code>{classesContract}</code></pre>
+            </div>
+            <div>
+                <h3>Button and state fields</h3>
+                <pre aria-label="Button and state contracts"><code>{buttonContract}</code></pre>
             </div>
         </div>
 
@@ -712,6 +921,10 @@ billing.success('Invoice paid');`;
                 <code>SileoOptions</code>, <code>SileoPosition</code>, <code>SileoState</code>,
                 <code>SileoClasses</code>, <code>SileoStyles</code>, <code>SileoButton</code>, and
                 <code>SileoPromiseOptions</code> are exported beside <code>Toaster</code> and <code>sileo</code>.
+            </p>
+            <p>
+                <code>SileoInput</code> is <code>SileoOptions | string</code>. <code>SileoScopedApi</code> contains
+                every creation and lifecycle method; <code>SileoApi</code> adds <code>with</code>.
             </p>
         </div>
     </section>
@@ -934,64 +1147,24 @@ billing.success('Invoice paid');`;
         bottom: 8px;
     }
 
-    .toast-specimen {
+    .toast-host {
         position: relative;
-        width: min(100%, 22rem);
-        margin: 0 auto;
-        padding: 12px;
-        border-radius: 18px;
-        background: var(--surface-1);
-        box-shadow: 0 24px 64px rgb(0 0 0 / 60%);
-        transform: translateY(-8px);
-    }
-
-    .toast-topline {
-        display: grid;
-        grid-template-columns: 24px 1fr auto;
+        display: flex;
+        width: 100%;
+        min-width: 0;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        line-height: 20px;
+        justify-content: center;
+        overflow: visible;
     }
 
-    .state-mark {
-        display: grid;
-        width: 24px;
-        height: 24px;
-        place-items: center;
-        border-radius: 9999px;
-        background: #ffffff;
-        color: #000000;
-        font-size: 12px;
-        font-weight: 700;
+    .hero-toast-host {
+        min-height: 10rem;
     }
 
-    .toast-time {
-        color: #707070;
-        font-size: 12px;
-    }
-
-    .toast-specimen p {
-        margin: 12px 0 16px 32px;
-        color: var(--text-soft);
-        font-size: 14px;
-        line-height: 20px;
-    }
-
-    .toast-progress {
-        height: 2px;
-        margin-left: 32px;
-        overflow: hidden;
-        background: var(--surface-4);
-    }
-
-    .toast-progress span {
-        display: block;
-        width: 68%;
-        height: 100%;
-        background: #ffffff;
-        transform-origin: left;
-        animation: settle 2.4s var(--ease-sileo) infinite alternate;
+    :global(.embedded-toast) {
+        --sileo-width: min(350px, calc(100vw - 64px));
+        --sileo-duration: 700ms;
+        flex: 0 1 auto;
     }
 
     .primary-button {
@@ -1080,7 +1253,11 @@ billing.success('Invoice paid');`;
         display: grid;
         grid-template-columns: minmax(16rem, 0.68fr) minmax(0, 1.32fr);
         gap: 64px;
-        align-items: start;
+        align-items: stretch;
+    }
+
+    .lab-stage {
+        min-height: 100%;
     }
 
     .sticky-stage {
@@ -1160,36 +1337,31 @@ billing.success('Invoice paid');`;
         transform: scale(0.98);
     }
 
-    .stage-diagram {
-        display: grid;
+    .playground-toast-host {
         height: 18rem;
         margin-top: 24px;
         padding: 16px;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: 1fr 1fr;
-        align-items: start;
-        gap: 16px;
         border: 1px solid var(--surface-3);
     }
 
-    .stage-diagram span {
-        width: 48px;
-        height: 8px;
-        justify-self: center;
-        border-radius: 9999px;
-        background: var(--surface-4);
-        transition:
-            background-color 700ms var(--ease-sileo),
-            transform 700ms var(--ease-sileo);
+    .playground-toast-host.at-top {
+        align-items: flex-start;
     }
 
-    .stage-diagram span:nth-child(n + 4) {
-        align-self: end;
+    .playground-toast-host.at-bottom {
+        align-items: flex-end;
     }
 
-    .stage-diagram span.active {
-        background: #ffffff;
-        transform: scaleX(1.5);
+    .playground-toast-host.at-left {
+        justify-content: flex-start;
+    }
+
+    .playground-toast-host.at-center {
+        justify-content: center;
+    }
+
+    .playground-toast-host.at-right {
+        justify-content: flex-end;
     }
 
     .scenario-workspace {
@@ -1240,6 +1412,20 @@ billing.success('Invoice paid');`;
 
     .scenario-detail {
         padding-top: 48px;
+    }
+
+    .scenario-enter {
+        animation: scenario-in 700ms var(--ease-sileo) both;
+    }
+
+    .scenario-announcement {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
     }
 
     .scenario-copy {
@@ -1496,20 +1682,39 @@ billing.success('Invoice paid');`;
         border-top: 1px solid var(--surface-3);
     }
 
-    .method-list {
-        display: flex;
+    .signature-list {
+        display: grid;
         margin-top: 24px;
-        flex-wrap: wrap;
-        gap: 8px;
+        border-top: 1px solid var(--surface-3);
     }
 
-    .method-list code {
-        padding: 8px 12px;
-        border: 1px solid var(--surface-3);
-        border-radius: 4px;
+    .signature-list code {
+        padding: 12px 0;
+        overflow-wrap: anywhere;
+        border-bottom: 1px solid var(--surface-3);
         color: var(--text-soft);
         font-size: 14px;
         line-height: 20px;
+    }
+
+    .contract-note {
+        max-width: 64ch;
+        margin: 24px 0 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 20px;
+    }
+
+    .contract-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+    }
+
+    .contract-grid pre {
+        margin-top: 24px;
+        border: 1px solid var(--surface-3);
+        background: var(--surface-1);
     }
 
     .table-scroll {
@@ -1618,12 +1823,14 @@ billing.success('Invoice paid');`;
         }
     }
 
-    @keyframes settle {
+    @keyframes scenario-in {
         from {
-            transform: scaleX(0.35);
+            opacity: 0;
+            transform: translateY(24px);
         }
         to {
-            transform: scaleX(1);
+            opacity: 1;
+            transform: translateY(0);
         }
     }
 
@@ -1679,10 +1886,6 @@ billing.success('Invoice paid');`;
             margin-top: 24px;
         }
 
-        .toast-specimen {
-            transform: none;
-        }
-
         .section {
             width: min(100% - 32px, 76rem);
             padding: 80px 0;
@@ -1700,7 +1903,8 @@ billing.success('Invoice paid');`;
 
         .playground-grid,
         .docs-row,
-        .appearance-grid {
+        .appearance-grid,
+        .contract-grid {
             grid-template-columns: 1fr;
         }
 
@@ -1714,7 +1918,7 @@ billing.success('Invoice paid');`;
             min-height: auto;
         }
 
-        .stage-diagram {
+        .playground-toast-host {
             height: 12rem;
         }
 
@@ -1759,18 +1963,6 @@ billing.success('Invoice paid');`;
             display: block;
         }
 
-        .toast-specimen {
-            padding: 12px;
-        }
-
-        .toast-specimen p {
-            margin-left: 0;
-        }
-
-        .toast-progress {
-            margin-left: 0;
-        }
-
         .position-control {
             grid-template-columns: repeat(2, 1fr);
         }
@@ -1801,7 +1993,7 @@ billing.success('Invoice paid');`;
 
     @media (prefers-reduced-motion: reduce) {
         .hero-enter,
-        .toast-progress span {
+        .scenario-enter {
             animation: none;
         }
 
@@ -1814,7 +2006,6 @@ billing.success('Invoice paid');`;
         .install-button,
         .primary-button,
         .position-control span,
-        .stage-diagram span,
         .scenario-list button,
         .code-toolbar button {
             transition-duration: 0.01ms;
