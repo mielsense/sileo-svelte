@@ -8,8 +8,8 @@
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
+    aria-hidden="true"
 >
-    <title>Life Buoy</title>
     <circle
         cx="12"
         cy="12"

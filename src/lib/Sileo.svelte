@@ -112,11 +112,13 @@
     let ready = $state(false);
     let pillWidth = $state(0);
     let contentHeight = $state(0);
+    let canvasWidth = $state(WIDTH);
+    let baseHeight = $state(HEIGHT);
 
     /* ---------------------------------- Refs ---------------------------------- */
 
     let buttonEl: HTMLDivElement | undefined = $state();
-    let headerEl: HTMLDivElement | undefined = $state();
+    let headerEl: HTMLElement | undefined = $state();
     let contentEl: HTMLDivElement | undefined = $state();
     let innerEl: HTMLDivElement | undefined = $state();
 
@@ -128,6 +130,7 @@
     let pending: { key?: string; payload: View } | null = null;
     let headerPad: number | null = null;
     let pointerStart: number | null = null;
+    let suppressClick = false;
     let frozenExpanded = $state(HEIGHT * MIN_EXPAND_RATIO);
 
     let headerLayer: HeaderLayer = $state(undefined as unknown as HeaderLayer);
@@ -158,10 +161,46 @@
 
     const headerKey = $derived(`${view?.toastState}-${view?.title}`);
     const filterId = $derived(`sileo-gooey-${id}`);
+    const contentId = $derived(`sileo-content-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
     const resolvedRoundness = $derived(Math.max(0, roundness ?? DEFAULT_ROUNDNESS));
     const blur = $derived(resolvedRoundness * BLUR_RATIO);
 
     /* ------------------------------ Measurements ------------------------------ */
+
+    $effect(() => {
+        const toast = buttonEl;
+        const header = headerEl;
+        if (!toast || !header) return;
+
+        const sizeOf = (entry: ResizeObserverEntry) => {
+            const borderSize = Array.isArray(entry.borderBoxSize) ? entry.borderBoxSize[0] : entry.borderBoxSize;
+            return {
+                width: borderSize?.inlineSize ?? entry.contentRect.width,
+                height: borderSize?.blockSize ?? entry.contentRect.height
+            };
+        };
+
+        const measure = () => {
+            const toastRect = toast.getBoundingClientRect();
+            const headerRect = header.getBoundingClientRect();
+            if (toastRect.width > 0) canvasWidth = toastRect.width;
+            if (headerRect.height > 0) baseHeight = headerRect.height;
+        };
+
+        measure();
+
+        const ro = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const size = sizeOf(entry);
+                if (entry.target === toast && size.width > 0) canvasWidth = size.width;
+                if (entry.target === header && size.height > 0) baseHeight = size.height;
+            }
+        });
+        ro.observe(toast);
+        ro.observe(header);
+
+        return () => ro.disconnect();
+    });
 
     $effect(() => {
         const el = innerEl;
@@ -363,8 +402,8 @@
 
     /* ------------------------------ Derived values ---------------------------- */
 
-    const minExpanded = $derived(HEIGHT * MIN_EXPAND_RATIO);
-    const rawExpanded = $derived(hasDesc ? Math.max(minExpanded, HEIGHT + contentHeight) : minExpanded);
+    const minExpanded = $derived(baseHeight * MIN_EXPAND_RATIO);
+    const rawExpanded = $derived(hasDesc ? Math.max(minExpanded, baseHeight + contentHeight) : minExpanded);
 
     $effect(() => {
         if (open) {
@@ -373,13 +412,17 @@
     });
 
     const expanded = $derived(open ? rawExpanded : frozenExpanded);
-    const svgHeight = $derived(hasDesc ? Math.max(expanded, minExpanded) : HEIGHT);
-    const expandedContent = $derived(Math.max(0, expanded - HEIGHT));
-    const resolvedPillWidth = $derived(Math.max(pillWidth || HEIGHT, HEIGHT));
-    const pillHeight = $derived(HEIGHT + blur * 3);
+    const svgHeight = $derived(hasDesc ? Math.max(expanded, minExpanded) : baseHeight);
+    const expandedContent = $derived(Math.max(0, expanded - baseHeight));
+    const resolvedPillWidth = $derived(Math.min(Math.max(pillWidth || baseHeight, baseHeight), canvasWidth));
+    const pillHeight = $derived(baseHeight + blur * 3);
 
     const pillX = $derived(
-        position === 'right' ? WIDTH - resolvedPillWidth : position === 'center' ? (WIDTH - resolvedPillWidth) / 2 : 0
+        position === 'right'
+            ? canvasWidth - resolvedPillWidth
+            : position === 'center'
+              ? (canvasWidth - resolvedPillWidth) / 2
+              : 0
     );
 
     /* ------------------------------- Inline styles ---------------------------- */
@@ -405,10 +448,11 @@
     });
 
     const rootStyle = $derived(
-        `--_h:${open ? expanded : HEIGHT}px;` +
+        `--_base-h:${baseHeight}px;` +
+            `--_h:${open ? expanded : baseHeight}px;` +
             `--_pw:${resolvedPillWidth}px;` +
             `--_px:${pillX}px;` +
-            `--_sy:${open ? 1 : HEIGHT / pillHeight};` +
+            `--_sy:${open ? 1 : baseHeight / pillHeight};` +
             `--_ph:${pillHeight}px;` +
             `--_by:${open ? 1 : 0};` +
             `--_ht:translateY(${open ? (expand === 'bottom' ? 3 : -3) : 0}px) scale(${open ? 0.9 : 1});` +
@@ -425,7 +469,34 @@
 
     function handleLeave(e: MouseEvent) {
         onmouseleave?.(e);
+        if (buttonEl?.contains(document.activeElement)) return;
         isExpanded = false;
+    }
+
+    function handleFocusIn() {
+        if (hasDesc && allowExpand) isExpanded = true;
+    }
+
+    function handleFocusOut(e: FocusEvent) {
+        const nextTarget = e.relatedTarget;
+        if (nextTarget instanceof Node && buttonEl?.contains(nextTarget)) return;
+        isExpanded = false;
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+        if (e.key !== 'Escape' || !open) return;
+        e.stopPropagation();
+        isExpanded = false;
+    }
+
+    function handleTriggerClick() {
+        if (suppressClick) {
+            suppressClick = false;
+            return;
+        }
+        const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches;
+        if (!hasDesc || isLoading || !allowExpand || (!view.button && !coarsePointer)) return;
+        isExpanded = !isExpanded;
     }
 
     function handleTransitionEnd(e: TransitionEvent) {
@@ -446,6 +517,7 @@
         if (exiting || !onDismiss) return;
         const target = e.target as HTMLElement;
         if (target.closest('[data-sileo-button]')) return;
+        suppressClick = false;
         pointerStart = e.clientY;
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
@@ -459,6 +531,7 @@
         const onMove = (e: PointerEvent) => {
             if (pointerStart === null) return;
             const dy = e.clientY - pointerStart;
+            if (Math.abs(dy) > 5) suppressClick = true;
             const sign = dy > 0 ? 1 : -1;
             const clamped = Math.min(Math.abs(dy), SWIPE_MAX) * sign;
             el.style.transform = `translateY(${clamped}px)`;
@@ -469,6 +542,7 @@
             const dy = e.clientY - pointerStart;
             pointerStart = null;
             el.style.transform = '';
+            suppressClick = Math.abs(dy) > 5;
             if (Math.abs(dy) > SWIPE_DISMISS) {
                 onDismiss?.();
             }
@@ -509,6 +583,70 @@
 </script>
 
 {#if view}
+    {#snippet headerLayers()}
+        <div data-sileo-header-stack>
+            {#key headerLayer.current.key}
+                <div
+                    bind:this={innerEl}
+                    data-sileo-header-inner
+                    data-layer="current"
+                >
+                    {#if headerLayer.current.view.icon !== null}
+                        <div
+                            data-sileo-badge
+                            data-state={headerLayer.current.view.toastState}
+                            class={headerLayer.current.view.classes?.badge}
+                        >
+                            {#if isSnippet(headerLayer.current.view.icon)}
+                                {@render headerLayer.current.view.icon()}
+                            {:else}
+                                {@const IconComponent = stateIcons[headerLayer.current.view.toastState]}
+                                <IconComponent />
+                            {/if}
+                        </div>
+                    {/if}
+                    <span
+                        data-sileo-title
+                        data-state={headerLayer.current.view.toastState}
+                        class={headerLayer.current.view.classes?.title}
+                    >
+                        {headerLayer.current.view.title}
+                    </span>
+                </div>
+            {/key}
+            {#if headerLayer.prev}
+                <div
+                    data-sileo-header-inner
+                    data-layer="prev"
+                    data-exiting="true"
+                    aria-hidden="true"
+                >
+                    {#if headerLayer.prev.view.icon !== null}
+                        <div
+                            data-sileo-badge
+                            data-state={headerLayer.prev.view.toastState}
+                            class={headerLayer.prev.view.classes?.badge}
+                        >
+                            {#if isSnippet(headerLayer.prev.view.icon)}
+                                {@render headerLayer.prev.view.icon()}
+                            {:else}
+                                {@const PrevIconComponent = stateIcons[headerLayer.prev.view.toastState]}
+                                <PrevIconComponent />
+                            {/if}
+                        </div>
+                    {/if}
+                    <span
+                        data-sileo-title
+                        data-state={headerLayer.prev.view.toastState}
+                        class={headerLayer.prev.view.classes?.title}
+                    >
+                        {headerLayer.prev.view.title}
+                    </span>
+                </div>
+            {/if}
+        </div>
+    {/snippet}
+
     <div
         bind:this={buttonEl}
         role="group"
@@ -532,11 +670,11 @@
         >
             <svg
                 data-sileo-svg
-                width={WIDTH}
+                width={canvasWidth}
                 height={svgHeight}
-                viewBox={`0 0 ${WIDTH} ${svgHeight}`}
+                viewBox={`0 0 ${canvasWidth} ${svgHeight}`}
+                aria-hidden="true"
             >
-                <title>Sileo Notification</title>
                 <defs>
                     <filter
                         id={filterId}
@@ -574,8 +712,8 @@
                     />
                     <rect
                         data-sileo-body
-                        y={HEIGHT}
-                        width={WIDTH}
+                        y={baseHeight}
+                        width={canvasWidth}
                         height={expandedContent}
                         rx={resolvedRoundness}
                         ry={resolvedRoundness}
@@ -585,71 +723,36 @@
             </svg>
         </div>
 
-        <div
-            bind:this={headerEl}
-            data-sileo-header
-            data-edge={expand}
-        >
-            <div data-sileo-header-stack>
-                {#key headerLayer.current.key}
-                    <div
-                        bind:this={innerEl}
-                        data-sileo-header-inner
-                        data-layer="current"
-                    >
-                        <div
-                            data-sileo-badge
-                            data-state={headerLayer.current.view.toastState}
-                            class={headerLayer.current.view.classes?.badge}
-                        >
-                            {#if headerLayer.current.view.icon != null && isSnippet(headerLayer.current.view.icon)}
-                                {@render headerLayer.current.view.icon()}
-                            {:else}
-                                {@const IconComponent = stateIcons[headerLayer.current.view.toastState]}
-                                <IconComponent />
-                            {/if}
-                        </div>
-                        <span
-                            data-sileo-title
-                            data-state={headerLayer.current.view.toastState}
-                            class={headerLayer.current.view.classes?.title}
-                        >
-                            {headerLayer.current.view.title}
-                        </span>
-                    </div>
-                {/key}
-                {#if headerLayer.prev}
-                    <div
-                        data-sileo-header-inner
-                        data-layer="prev"
-                        data-exiting="true"
-                    >
-                        <div
-                            data-sileo-badge
-                            data-state={headerLayer.prev.view.toastState}
-                            class={headerLayer.prev.view.classes?.badge}
-                        >
-                            {#if headerLayer.prev.view.icon != null && isSnippet(headerLayer.prev.view.icon)}
-                                {@render headerLayer.prev.view.icon()}
-                            {:else}
-                                {@const PrevIconComponent = stateIcons[headerLayer.prev.view.toastState]}
-                                <PrevIconComponent />
-                            {/if}
-                        </div>
-                        <span
-                            data-sileo-title
-                            data-state={headerLayer.prev.view.toastState}
-                            class={headerLayer.prev.view.classes?.title}
-                        >
-                            {headerLayer.prev.view.title}
-                        </span>
-                    </div>
-                {/if}
+        {#if hasDesc && !isLoading}
+            <button
+                bind:this={headerEl}
+                type="button"
+                tabindex={view.button ? 0 : -1}
+                aria-expanded={open}
+                aria-controls={contentId}
+                data-sileo-header
+                data-sileo-trigger
+                data-edge={expand}
+                onfocusin={handleFocusIn}
+                onfocusout={handleFocusOut}
+                onkeydown={handleKeyDown}
+                onclick={handleTriggerClick}
+            >
+                {@render headerLayers()}
+            </button>
+        {:else}
+            <div
+                bind:this={headerEl}
+                data-sileo-header
+                data-edge={expand}
+            >
+                {@render headerLayers()}
             </div>
-        </div>
+        {/if}
 
         {#if hasDesc}
             <div
+                id={contentId}
                 data-sileo-content
                 data-edge={expand}
                 data-visible={open}
@@ -672,6 +775,9 @@
                             data-sileo-button
                             data-state={view.toastState}
                             class={view.classes?.button}
+                            onfocusin={handleFocusIn}
+                            onfocusout={handleFocusOut}
+                            onkeydown={handleKeyDown}
                             onclick={(e) => {
                                 e.stopPropagation();
                                 view.button?.onClick(id);

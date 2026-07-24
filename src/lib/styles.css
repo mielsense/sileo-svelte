@@ -63,7 +63,7 @@
     margin: 0;
     box-sizing: border-box;
     font: inherit;
-    width: var(--sileo-width);
+    width: min(var(--sileo-width), calc(100vw - 1.5rem));
     height: var(--_h, var(--sileo-height));
     opacity: 0;
     transform: translateZ(0) scale(0.95);
@@ -74,6 +74,31 @@
 
 [data-sileo-toast][data-state='loading'] {
     cursor: default;
+}
+
+[data-sileo-trigger]:focus-visible {
+    outline: 2px solid var(--_sileo-focus, var(--sileo-state-success));
+    outline-offset: 2px;
+}
+
+[data-sileo-toast][data-state='loading'] {
+    --_sileo-focus: var(--sileo-state-loading);
+}
+
+[data-sileo-toast][data-state='error'] {
+    --_sileo-focus: var(--sileo-state-error);
+}
+
+[data-sileo-toast][data-state='warning'] {
+    --_sileo-focus: var(--sileo-state-warning);
+}
+
+[data-sileo-toast][data-state='info'] {
+    --_sileo-focus: var(--sileo-state-info);
+}
+
+[data-sileo-toast][data-state='action'] {
+    --_sileo-focus: var(--sileo-state-action);
 }
 
 [data-sileo-toast][data-ready='true'] {
@@ -174,11 +199,17 @@
 /* --------------------------------- Header --------------------------------- */
 
 [data-sileo-header] {
+    appearance: none;
     position: absolute;
     z-index: 20;
     display: flex;
     align-items: center;
     padding: 0 0.5rem;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: inherit;
+    color: inherit;
     height: var(--sileo-height);
     box-sizing: border-box;
     overflow: hidden;
@@ -314,7 +345,7 @@
 }
 
 [data-sileo-content][data-edge='bottom'] {
-    top: var(--sileo-height);
+    top: var(--_base-h, var(--sileo-height));
 }
 
 [data-sileo-content][data-visible='true'] {
@@ -450,11 +481,11 @@
 }
 
 [data-sileo-viewport][data-position^='top'] [data-sileo-toast]:not([data-ready='true']) {
-    margin-bottom: calc(-1 * (var(--sileo-height) + 0.75rem));
+    margin-bottom: calc(-1 * (var(--_base-h, var(--sileo-height)) + 0.75rem));
 }
 
 [data-sileo-viewport][data-position^='bottom'] [data-sileo-toast]:not([data-ready='true']) {
-    margin-top: calc(-1 * (var(--sileo-height) + 0.75rem));
+    margin-top: calc(-1 * (var(--_base-h, var(--sileo-height)) + 0.75rem));
 }
 
 /* Vertical edge */

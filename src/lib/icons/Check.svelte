@@ -8,7 +8,7 @@
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
+    aria-hidden="true"
 >
-    <title>Check</title>
     <path d="M20 6 9 17l-5-5" />
 </svg>
