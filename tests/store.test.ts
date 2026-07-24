@@ -15,11 +15,14 @@ describe('sileo store', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         store.toasts = [];
+        store.globalOptions = undefined;
     });
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.restoreAllMocks();
         store.toasts = [];
+        store.globalOptions = undefined;
     });
 
     test('returns unique string ids when creating toasts', () => {
@@ -182,6 +185,52 @@ describe('sileo store', () => {
         expect(store.toasts.find((toast) => toast.id === id)?.description).toBe('10%');
     });
 
+    test('applies update defaults before existing and explicit fields', () => {
+        const id = sileo.show({
+            title: 'Existing',
+            position: 'top-right',
+            duration: 4000,
+            classes: { title: 'existing-title' },
+            styles: { titleColor: 'existing-color' }
+        });
+        store.globalOptions = {
+            position: 'top-left',
+            duration: 1000,
+            classes: { title: 'global-title', badge: 'global-badge', description: 'global-description' },
+            styles: { titleColor: 'red', badgeColor: 'blue', descriptionColor: 'purple' }
+        };
+        const scoped = sileo.with({
+            position: 'bottom-left',
+            duration: 2000,
+            classes: { title: 'scoped-title', badge: 'scoped-badge', button: 'scoped-button' },
+            styles: { titleColor: 'green', badgeColor: 'yellow', buttonColor: 'black' }
+        });
+
+        scoped.update(id, {
+            classes: { description: 'explicit-description' },
+            styles: { badgeColor: 'explicit-badge' }
+        });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                position: 'top-right',
+                duration: 4000,
+                classes: {
+                    title: 'existing-title',
+                    badge: 'scoped-badge',
+                    description: 'explicit-description',
+                    button: 'scoped-button'
+                },
+                styles: {
+                    titleColor: 'existing-color',
+                    badgeColor: 'explicit-badge',
+                    descriptionColor: 'purple',
+                    buttonColor: 'black'
+                }
+            })
+        );
+    });
+
     test('merges nested update maps and replaces explicitly supplied fields', () => {
         const id = sileo.action({
             title: 'Review',
@@ -221,6 +270,41 @@ describe('sileo store', () => {
                 autopilot: false,
                 autoExpandDelayMs: undefined,
                 autoCollapseDelayMs: undefined
+            })
+        );
+    });
+
+    test('accepts null and false as explicit update values', () => {
+        const id = sileo.show({ title: 'Waiting', icon: null, duration: 1000, autopilot: { expand: 500 } });
+
+        sileo.update(id, { icon: null, duration: null, autopilot: false });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                icon: null,
+                duration: null,
+                autopilot: false,
+                autoExpandDelayMs: undefined,
+                autoCollapseDelayMs: undefined
+            })
+        );
+    });
+
+    test('recalculates autopilot delays after an explicit state change', () => {
+        const id = sileo.action({
+            title: 'Review',
+            duration: 1000,
+            autopilot: { expand: 5000, collapse: 5000 }
+        });
+
+        sileo.update(id, { state: 'success' });
+
+        expect(store.toasts.find((toast) => toast.id === id)).toEqual(
+            expect.objectContaining({
+                state: 'success',
+                duration: 6000,
+                autoExpandDelayMs: 5000,
+                autoCollapseDelayMs: 5000
             })
         );
     });
@@ -291,5 +375,91 @@ describe('sileo store', () => {
         expect(store.toasts[0]).toEqual(
             expect.objectContaining({ title: 'Open report.pdf', state: 'action', duration: null })
         );
+    });
+
+    test('maps a success resolver failure to the error toast without changing the returned promise', async () => {
+        const result = { file: 'report.pdf' };
+        const resolverError = new Error('success mapper failed');
+        const returned = sileo.promise(Promise.resolve(result), {
+            loading: { title: 'Uploading' },
+            success: () => {
+                throw resolverError;
+            },
+            error: (error) => ({ title: `Recovered: ${(error as Error).message}` })
+        });
+
+        await expect(returned).resolves.toBe(result);
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(
+            expect.objectContaining({ title: 'Recovered: success mapper failed', state: 'error', duration: 6000 })
+        );
+    });
+
+    test('maps an action resolver failure to the error toast without changing the returned promise', async () => {
+        const result = 'report.pdf';
+        const resolverError = new Error('action mapper failed');
+        const returned = sileo.promise(Promise.resolve(result), {
+            loading: { title: 'Uploading' },
+            success: { title: 'Uploaded' },
+            action: () => {
+                throw resolverError;
+            },
+            error: (error) => ({ title: `Recovered: ${(error as Error).message}` })
+        });
+
+        await expect(returned).resolves.toBe(result);
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(
+            expect.objectContaining({ title: 'Recovered: action mapper failed', state: 'error', duration: 6000 })
+        );
+    });
+
+    test('reports an error mapper failure once without an unhandled side-chain rejection', async () => {
+        const mapperError = new Error('error mapper failed');
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const returned = sileo.promise(Promise.reject(new Error('offline')), {
+            loading: { title: 'Uploading' },
+            success: { title: 'Uploaded' },
+            error: () => {
+                throw mapperError;
+            }
+        });
+
+        await expect(returned).rejects.toThrow('offline');
+        await vi.runAllTimersAsync();
+
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        expect(consoleError).toHaveBeenCalledWith('Sileo promise error mapper failed', mapperError);
+    });
+
+    test('does not let an older promise settlement overwrite a newer toast with the same id', async () => {
+        const first = deferred<string>();
+        const second = deferred<string>();
+        const firstReturned = sileo.promise(first.promise, {
+            id: 'stable',
+            loading: { title: 'First loading' },
+            success: { title: 'First complete' },
+            error: { title: 'First failed' }
+        });
+        const secondReturned = sileo.promise(second.promise, {
+            id: 'stable',
+            loading: { title: 'Second loading' },
+            success: { title: 'Second complete' },
+            error: { title: 'Second failed' }
+        });
+
+        first.resolve('first');
+        await firstReturned;
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(expect.objectContaining({ title: 'Second loading', state: 'loading' }));
+
+        second.resolve('second');
+        await secondReturned;
+        await vi.runAllTimersAsync();
+
+        expect(store.toasts[0]).toEqual(expect.objectContaining({ title: 'Second complete', state: 'success' }));
     });
 });
