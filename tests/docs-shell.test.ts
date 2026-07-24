@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import Layout from '../src/routes/+layout.svelte';
 import Page from '../src/routes/+page.svelte';
 
+vi.mock('$app/paths', () => ({
+    assets: '/docs',
+    base: '/docs',
+    resolve: (path: string) => `/docs${path}`
+}));
+
 class IntersectionObserverMock {
     static instances: IntersectionObserverMock[] = [];
     private targets = new Set<Element>();
@@ -96,15 +102,23 @@ describe('documentation shell', () => {
 
     test('renders complete canonical and social metadata', () => {
         render(Page);
+        const canonicalHref = document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? '';
+        const expectedSocialImage = new URL('/docs/og-image.svg', canonicalHref).href;
 
         expect(document.title).toBe('Sileo Svelte — physics-based toast notifications');
         expect(document.head.querySelector('meta[name="description"]')?.getAttribute('content')).toContain('Svelte 5');
-        expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toMatch(/^https?:\/\//);
+        expect(canonicalHref).toMatch(/^https?:\/\//);
         expect(document.head.querySelector('meta[property="og:title"]')?.getAttribute('content')).toContain(
             'Sileo Svelte'
         );
         expect(document.head.querySelector('meta[property="og:image"]')?.getAttribute('content')).toMatch(
             /^https?:\/\//
+        );
+        expect(document.head.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
+            expectedSocialImage
+        );
+        expect(document.head.querySelector('meta[name="twitter:image"]')?.getAttribute('content')).toBe(
+            expectedSocialImage
         );
         expect(document.head.querySelector('meta[name="twitter:card"]')?.getAttribute('content')).toBe(
             'summary_large_image'
@@ -131,5 +145,11 @@ describe('documentation shell', () => {
         expect(stylesheet).toContain('@media (prefers-reduced-motion: reduce)');
         expect(stylesheet).toContain('.scenario-enter');
         expect(stylesheet).toContain('animation: none');
+
+        const defaultRevealRule = stylesheet.match(/\n\s*\[data-reveal\]\s*\{([^}]*)\}/)?.[1];
+        expect(defaultRevealRule).toBeDefined();
+        expect(defaultRevealRule).not.toContain('opacity: 0');
+        expect(defaultRevealRule).not.toContain('translateY');
+        expect(stylesheet).toContain('[data-reveal]:global(.reveal-enabled)');
     });
 });

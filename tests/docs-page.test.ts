@@ -96,6 +96,42 @@ describe('documentation playground', () => {
         expect(container.querySelector('[data-scenario-detail]')?.hasAttribute('aria-live')).toBe(false);
     });
 
+    test('keeps reveal sections visible when IntersectionObserver is unavailable', () => {
+        vi.stubGlobal('IntersectionObserver', undefined);
+        const { container } = render(Page);
+        const sections = [...container.querySelectorAll<HTMLElement>('[data-reveal]')];
+
+        expect(sections.length).toBeGreaterThan(0);
+        for (const section of sections) {
+            expect(section.classList.contains('reveal-enabled')).toBe(false);
+            expect(getComputedStyle(section).opacity).not.toBe('0');
+        }
+    });
+
+    test('keeps reveal sections visible when IntersectionObserver installation fails', () => {
+        vi.stubGlobal(
+            'IntersectionObserver',
+            class IntersectionObserver {
+                constructor() {
+                    throw new Error('observer unavailable');
+                }
+            }
+        );
+        const { container } = render(Page);
+        const sections = [...container.querySelectorAll<HTMLElement>('[data-reveal]')];
+
+        expect(sections.length).toBeGreaterThan(0);
+        expect(sections.every((section) => !section.classList.contains('reveal-enabled'))).toBe(true);
+    });
+
+    test('opts into reveal animation only after observer support is installed', () => {
+        const { container } = render(Page);
+        const sections = [...container.querySelectorAll<HTMLElement>('[data-reveal]')];
+
+        expect(sections.length).toBeGreaterThan(0);
+        expect(sections.every((section) => section.classList.contains('reveal-enabled'))).toBe(true);
+    });
+
     test('animates the actual hero toast from loading to success', async () => {
         vi.useFakeTimers();
         const { getByRole, container } = render(Page);

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onDestroy } from 'svelte';
     import type { Action } from 'svelte/action';
+    import { assets } from '$app/paths';
     import { page } from '$app/state';
     import Sileo from '$lib/Sileo.svelte';
     import type { SileoButton, SileoPosition } from '$lib/index.js';
@@ -117,7 +118,7 @@ type SileoPosition =
     const selectedScenario = $derived(scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0]);
     const selectedSource = $derived(selectedScenario.source(selectedPosition));
     const canonicalUrl = $derived(new URL(page.url.pathname, page.url.origin).href);
-    const socialImageUrl = $derived(new URL('/og-image.svg', page.url.origin).href);
+    const socialImageUrl = $derived(new URL(`${assets}/og-image.svg`, page.url.origin).href);
     const scenarioPreviewButton = $derived.by<SileoButton | undefined>(() => {
         const button = scenarioPreview.button;
         if (!button) return undefined;
@@ -281,26 +282,30 @@ type SileoPosition =
             typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
-            node.classList.add('is-visible');
             return;
         }
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    node.classList.add('is-visible');
-                    observer.unobserve(node);
-                }
-            },
-            { threshold: 0.12 }
-        );
-        observer.observe(node);
+        try {
+            const observer = new IntersectionObserver(
+                ([entry]) => {
+                    if (entry.isIntersecting) {
+                        node.classList.add('is-visible');
+                        observer.unobserve(node);
+                    }
+                },
+                { threshold: 0.12 }
+            );
+            observer.observe(node);
+            node.classList.add('reveal-enabled');
 
-        return {
-            destroy() {
-                observer.disconnect();
-            }
-        };
+            return {
+                destroy() {
+                    observer.disconnect();
+                }
+            };
+        } catch {
+            node.classList.remove('reveal-enabled', 'is-visible');
+        }
     };
 </script>
 
@@ -1224,14 +1229,17 @@ type SileoPosition =
     }
 
     [data-reveal] {
-        opacity: 0;
-        transform: translateY(64px);
         transition:
             opacity 800ms var(--ease-sileo),
             transform 800ms var(--ease-sileo);
     }
 
-    [data-reveal]:global(.is-visible) {
+    [data-reveal]:global(.reveal-enabled) {
+        opacity: 0;
+        transform: translateY(64px);
+    }
+
+    [data-reveal]:global(.reveal-enabled.is-visible) {
         opacity: 1;
         transform: translateY(0);
     }
