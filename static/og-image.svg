@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#000"/>
+  <path d="M80 72h1040M80 558h1040" stroke="#272727"/>
+  <text x="80" y="124" fill="#8f8f8f" font-family="Geist, Manrope, sans-serif" font-size="22" font-weight="700" letter-spacing="2">SILEO SVELTE · MOTION LAB</text>
+  <text x="80" y="244" fill="#fff" font-family="Geist, Manrope, sans-serif" font-size="76" font-weight="700" letter-spacing="-4">Toast motion that feels</text>
+  <text x="80" y="324" fill="#bdbdbd" font-family="Geist, Manrope, sans-serif" font-size="76" font-weight="700" letter-spacing="-4">native to Svelte.</text>
+  <g transform="translate(730 394)">
+    <rect width="390" height="96" rx="22" fill="#181818"/>
+    <circle cx="38" cy="34" r="13" fill="#fff"/>
+    <path d="m32 34 4 4 8-9" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="62" y="39" fill="#fff" font-family="Geist, Manrope, sans-serif" font-size="20" font-weight="700">Motion ready</text>
+    <text x="62" y="68" fill="#9b9b9b" font-family="Geist, Manrope, sans-serif" font-size="16">Svelte 5 · typed · deterministic</text>
+  </g>
+  <text x="80" y="510" fill="#9b9b9b" font-family="Geist, Manrope, sans-serif" font-size="22">Physics-based, gooey notifications for Svelte 5.</text>
+</svg>
