@@ -467,12 +467,18 @@
 
     /* -------------------------------- Handlers -------------------------------- */
 
+    function canHover() {
+        return window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? true;
+    }
+
     function handleEnter(e: MouseEvent) {
+        if (!canHover()) return;
         onmouseenter?.(e);
         if (hasDesc) isExpanded = true;
     }
 
     function handleLeave(e: MouseEvent) {
+        if (!canHover()) return;
         onmouseleave?.(e);
         if (buttonEl?.contains(document.activeElement)) return;
         isExpanded = false;

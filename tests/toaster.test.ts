@@ -55,10 +55,27 @@ function dispatchPointer(target: Element, type: string, clientY: number, pointer
     );
 }
 
+function stubHoverCapability(matches: boolean) {
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn(() => ({
+            matches,
+            media: '(hover: hover) and (pointer: fine)',
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn()
+        }))
+    );
+}
+
 describe('Toaster', () => {
     beforeEach(() => {
         ResizeObserverMock.reset();
         vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+        stubHoverCapability(true);
         store.toasts = [];
         store.position = 'top-right';
         store.globalOptions = undefined;
@@ -122,7 +139,8 @@ describe('Toaster', () => {
         expect(onClick).toHaveBeenCalledWith(id);
     });
 
-    test('expands and collapses described content on mouse enter and leave', async () => {
+    test('expands and collapses described content on a hover-capable fine pointer', async () => {
+        stubHoverCapability(true);
         sileo.show({ title: 'Details', description: 'More information', autopilot: false });
         const { getByRole, getByText } = render(Toaster);
 
@@ -135,6 +153,42 @@ describe('Toaster', () => {
 
         await fireEvent.mouseLeave(toast);
         expect(toast.getAttribute('data-expanded')).toBe('false');
+    });
+
+    test('keeps a touched stacked toast open after a synthesized mouseleave', async () => {
+        stubHoverCapability(false);
+        sileo.action({
+            title: 'Older mobile action',
+            description: 'Older touch details',
+            autopilot: false,
+            button: { title: 'Older button', onClick: vi.fn() }
+        });
+        sileo.action({
+            title: 'Newer mobile action',
+            description: 'Newer touch details',
+            autopilot: false,
+            button: { title: 'Newer button', onClick: vi.fn() }
+        });
+        const { getByText } = render(Toaster);
+
+        await tick();
+
+        const olderToast = getByText('Older mobile action').closest('[data-sileo-toast]') as HTMLElement;
+        const newerToast = getByText('Newer mobile action').closest('[data-sileo-toast]') as HTMLElement;
+        const olderTrigger = olderToast.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+        olderToast.setPointerCapture = vi.fn();
+
+        expect(olderToast.getAttribute('data-expanded')).toBe('false');
+        expect(newerToast.getAttribute('data-expanded')).toBe('false');
+
+        dispatchPointer(olderTrigger, 'pointerdown', 10);
+        olderTrigger.click();
+        await tick();
+        expect(olderToast.getAttribute('data-expanded')).toBe('true');
+
+        await fireEvent.mouseLeave(olderToast);
+        expect(olderToast.getAttribute('data-expanded')).toBe('true');
+        expect(newerToast.getAttribute('data-expanded')).toBe('false');
     });
 
     test('announces through a polite live viewport', async () => {
