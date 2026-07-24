@@ -9,6 +9,27 @@
     const apiHref = `${resolve('/')}#api`;
     let currentSection = $state<'home' | 'playground' | 'api'>('home');
     let isCompact = $state(false);
+    let isMenuOpen = $state(false);
+    let menuButton: HTMLButtonElement;
+
+    function closeMenu(restoreFocus = false) {
+        isMenuOpen = false;
+        if (restoreFocus) queueMicrotask(() => menuButton?.focus());
+    }
+
+    function handleWindowKeydown(event: KeyboardEvent) {
+        if (event.key !== 'Escape' || !isMenuOpen) return;
+        event.preventDefault();
+        closeMenu(true);
+    }
+
+    $effect(() => {
+        const previousOverflow = document.body.style.overflow;
+        if (isMenuOpen) document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    });
 
     onMount(() => {
         let observer: IntersectionObserver | undefined;
@@ -60,6 +81,8 @@
     });
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 <a
     class="skip-link"
     href="#main-content">Skip to content</a
@@ -75,6 +98,7 @@
     <nav
         class="nav-island"
         class:is-compact={isCompact}
+        class:is-menu-open={isMenuOpen}
         aria-label="Primary navigation"
     >
         <a
@@ -94,7 +118,7 @@
             </svg>
             <span>Sileo Svelte</span>
         </a>
-        <div class="nav-links">
+        <div class="nav-links desktop-nav">
             <!-- eslint-disable svelte/no-navigation-without-resolve -- hashes are appended to the resolved base path -->
             <a
                 href={playgroundHref}
@@ -114,6 +138,53 @@
                 <span aria-hidden="true">↗</span>
             </a>
         </div>
+        <button
+            class="menu-toggle"
+            class:is-open={isMenuOpen}
+            bind:this={menuButton}
+            type="button"
+            aria-controls="mobile-navigation"
+            aria-expanded={isMenuOpen}
+            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            onclick={() => (isMenuOpen = !isMenuOpen)}
+        >
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+    <nav
+        id="mobile-navigation"
+        class="mobile-menu"
+        class:is-open={isMenuOpen}
+        aria-label="Mobile navigation"
+        aria-hidden={!isMenuOpen}
+        inert={!isMenuOpen}
+        data-mobile-menu
+    >
+        <a
+            href={resolve('/')}
+            aria-current={currentSection === 'home' ? 'page' : undefined}
+            onclick={() => closeMenu()}>Home</a
+        >
+        <!-- eslint-disable svelte/no-navigation-without-resolve -- hashes are appended to the resolved base path -->
+        <a
+            href={playgroundHref}
+            aria-current={currentSection === 'playground' ? 'location' : undefined}
+            onclick={() => closeMenu()}>Playground</a
+        >
+        <a
+            href={apiHref}
+            aria-current={currentSection === 'api' ? 'location' : undefined}
+            onclick={() => closeMenu()}>API</a
+        >
+        <!-- eslint-enable svelte/no-navigation-without-resolve -->
+        <a
+            href="https://github.com/mielsense/sileo-svelte"
+            rel="noreferrer"
+            onclick={() => closeMenu()}
+        >
+            GitHub <span aria-hidden="true">↗</span>
+        </a>
     </nav>
 </header>
 
@@ -228,6 +299,8 @@
     }
 
     .nav-island {
+        position: relative;
+        z-index: 2;
         display: flex;
         width: max-content;
         max-width: 100%;
@@ -252,10 +325,14 @@
             box-shadow 700ms var(--ease-sileo);
     }
 
-    .nav-island.is-compact {
+    .nav-island.is-compact,
+    .nav-island.is-menu-open {
         border-color: rgb(255 255 255 / 12%);
         background: rgb(24 24 24 / 80%);
         box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+    }
+
+    .nav-island.is-compact {
         transform: translateY(-8px);
     }
 
@@ -334,6 +411,11 @@
         color: #000000;
     }
 
+    .menu-toggle,
+    .mobile-menu {
+        display: none;
+    }
+
     @media (max-width: 520px) {
         .site-header {
             padding: 12px 8px 0;
@@ -342,7 +424,7 @@
         .nav-island {
             min-height: 44px;
             padding-left: 8px;
-            gap: 4px;
+            gap: 24px;
         }
 
         .wordmark {
@@ -354,14 +436,102 @@
             height: 20px;
         }
 
-        .nav-links {
-            gap: 0;
+        .desktop-nav {
+            display: none;
         }
 
-        .nav-links a {
-            min-height: 36px;
-            padding: 8px;
-            font-size: 12px;
+        .menu-toggle {
+            position: relative;
+            display: grid;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            place-items: center;
+            border: 0;
+            border-radius: 9999px;
+            background: #ffffff;
+            color: #000000;
+            cursor: pointer;
+        }
+
+        .menu-toggle span {
+            position: absolute;
+            width: 12px;
+            height: 2px;
+            border-radius: 9999px;
+            background: currentColor;
+            transition: transform 700ms var(--ease-sileo);
+        }
+
+        .menu-toggle span:first-child {
+            transform: translateY(-3px);
+        }
+
+        .menu-toggle span:last-child {
+            transform: translateY(3px);
+        }
+
+        .menu-toggle.is-open span:first-child {
+            transform: rotate(45deg);
+        }
+
+        .menu-toggle.is-open span:last-child {
+            transform: rotate(-45deg);
+        }
+
+        .mobile-menu {
+            position: fixed;
+            z-index: 1;
+            inset: 0;
+            display: flex;
+            padding: 96px 24px 48px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            background: rgb(0 0 0 / 80%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition:
+                opacity 700ms var(--ease-sileo),
+                visibility 700ms var(--ease-sileo);
+        }
+
+        .mobile-menu.is-open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .mobile-menu a {
+            display: flex;
+            padding: 8px 0;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 36px;
+            font-weight: 600;
+            line-height: 40px;
+            letter-spacing: -0.03em;
+            text-decoration: none;
+            opacity: 0;
+            transform: translateY(48px);
+            transition:
+                color 200ms var(--ease-sileo),
+                opacity 700ms var(--ease-sileo),
+                transform 700ms var(--ease-sileo);
+        }
+
+        .mobile-menu.is-open a {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mobile-menu a:hover,
+        .mobile-menu a[aria-current] {
+            color: var(--text);
         }
     }
 
@@ -384,6 +554,9 @@
 
         .skip-link,
         .nav-island,
+        .menu-toggle span,
+        .mobile-menu,
+        .mobile-menu a,
         .nav-links a {
             transition-duration: 0.01ms;
         }

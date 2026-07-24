@@ -3,6 +3,11 @@
     import type { Action } from 'svelte/action';
     import { assets } from '$app/paths';
     import { page } from '$app/state';
+    import Highlight from 'svelte-highlight';
+    import HighlightSvelte from 'svelte-highlight/HighlightSvelte.svelte';
+    import typescript from 'svelte-highlight/languages/typescript';
+    import 'svelte-highlight/themes/base.css';
+    import 'svelte-highlight/themes/gruvbox-dark-medium.css';
     import Sileo from '$lib/Sileo.svelte';
     import type { SileoButton, SileoPosition } from '$lib/index.js';
     import { scenarios, type ScenarioCompletion, type ScenarioToast } from './_components/scenarios.js';
@@ -127,37 +132,6 @@ type SileoPosition =
             onClick: () => handlePreviewButton()
         };
     });
-
-    type TokenKind = 'plain' | 'keyword' | 'string' | 'comment' | 'function';
-    interface CodeToken {
-        text: string;
-        kind: TokenKind;
-    }
-
-    function tokenize(source: string): CodeToken[] {
-        const matcher =
-            /(\/\/[^\n]*|`(?:\\.|[^`])*`|'(?:\\.|[^'])*'|"(?:\\.|[^"])*"|\b(?:const|let|await|async|return|import|from|type|if|else|new)\b|\b(?:sileo|success|info|action|loading|update|promise|with|close)\b)/g;
-        const tokens: CodeToken[] = [];
-        let cursor = 0;
-
-        for (const match of source.matchAll(matcher)) {
-            const index = match.index ?? 0;
-            if (index > cursor) tokens.push({ text: source.slice(cursor, index), kind: 'plain' });
-            const text = match[0];
-            const kind: TokenKind = text.startsWith('//')
-                ? 'comment'
-                : text.startsWith("'") || text.startsWith('"') || text.startsWith('`')
-                  ? 'string'
-                  : /^(const|let|await|async|return|import|from|type|if|else|new)$/.test(text)
-                    ? 'keyword'
-                    : 'function';
-            tokens.push({ text, kind });
-            cursor = index + text.length;
-        }
-
-        if (cursor < source.length) tokens.push({ text: source.slice(cursor), kind: 'plain' });
-        return tokens;
-    }
 
     async function writeClipboard(value: string): Promise<boolean> {
         try {
@@ -585,16 +559,11 @@ type SileoPosition =
                                     onclick={copyScenario}>Copy code</button
                                 >
                             </div>
-                            <pre
+                            <HighlightSvelte
+                                code={selectedSource}
                                 data-scenario-source
-                                aria-label={`${selectedScenario.label} source code`}><code
-                                    >{#each tokenize(selectedSource) as token, tokenIndex (tokenIndex)}<span
-                                            class:code-keyword={token.kind === 'keyword'}
-                                            class:code-string={token.kind === 'string'}
-                                            class:code-comment={token.kind === 'comment'}
-                                            class:code-function={token.kind === 'function'}>{token.text}</span
-                                        >{/each}</code
-                                ></pre>
+                                aria-label={`${selectedScenario.label} source code`}
+                            />
                         </div>
                         <div class="scenario-actions">
                             <p
@@ -644,7 +613,10 @@ type SileoPosition =
                         onclick={() => copyReference('Mount example', mountCode)}>Copy</button
                     >
                 </div>
-                <pre aria-label="Mount example source code"><code>{mountCode}</code></pre>
+                <HighlightSvelte
+                    code={mountCode}
+                    aria-label="Mount example source code"
+                />
             </div>
         </div>
 
@@ -670,7 +642,11 @@ type SileoPosition =
                         onclick={() => copyReference('Update example', updateCode)}>Copy</button
                     >
                 </div>
-                <pre aria-label="Update example source code"><code>{updateCode}</code></pre>
+                <Highlight
+                    language={typescript}
+                    code={updateCode}
+                    aria-label="Update example source code"
+                />
             </div>
         </div>
 
@@ -690,7 +666,11 @@ type SileoPosition =
                         onclick={() => copyReference('Promise example', promiseCode)}>Copy</button
                     >
                 </div>
-                <pre aria-label="Promise example source code"><code>{promiseCode}</code></pre>
+                <Highlight
+                    language={typescript}
+                    code={promiseCode}
+                    aria-label="Promise example source code"
+                />
             </div>
         </div>
 
@@ -711,7 +691,11 @@ type SileoPosition =
                         onclick={() => copyReference('Scoped example', scopedCode)}>Copy</button
                     >
                 </div>
-                <pre aria-label="Scoped example source code"><code>{scopedCode}</code></pre>
+                <Highlight
+                    language={typescript}
+                    code={scopedCode}
+                    aria-label="Scoped example source code"
+                />
             </div>
         </div>
 
@@ -921,11 +905,19 @@ type SileoPosition =
         <div class="api-block contract-grid">
             <div>
                 <h3>Class and style fields</h3>
-                <pre aria-label="Class and style contracts"><code>{classesContract}</code></pre>
+                <Highlight
+                    language={typescript}
+                    code={classesContract}
+                    aria-label="Class and style contracts"
+                />
             </div>
             <div>
                 <h3>Button and state fields</h3>
-                <pre aria-label="Button and state contracts"><code>{buttonContract}</code></pre>
+                <Highlight
+                    language={typescript}
+                    code={buttonContract}
+                    aria-label="Button and state contracts"
+                />
             </div>
         </div>
 
@@ -1091,7 +1083,10 @@ type SileoPosition =
         color: #414141;
     }
 
-    .install-button:hover,
+    .install-button:hover {
+        background: #d9d9d9;
+    }
+
     .primary-button:hover {
         background: #d9d9d9;
     }
@@ -1546,38 +1541,21 @@ type SileoPosition =
         transform: scale(0.98);
     }
 
-    pre {
+    :global(pre[data-language]) {
         max-width: 100%;
         margin: 0;
         padding: 24px;
         overflow-x: auto;
         color: #d7d7d7;
-        font-family: Geist, Manrope, sans-serif;
+        font-family: 'Geist Mono', Geist, Manrope, sans-serif;
         font-size: 14px;
         line-height: 20px;
         tab-size: 4;
+        --shl-bg: transparent;
     }
 
     code {
-        font-family: Geist, Manrope, sans-serif;
-    }
-
-    .code-keyword {
-        color: #ffffff;
-        font-weight: 700;
-    }
-
-    .code-string {
-        color: #bdbdbd;
-    }
-
-    .code-comment {
-        color: #707070;
-    }
-
-    .code-function {
-        color: #e7e7e7;
-        font-weight: 600;
+        font-family: 'Geist Mono', Geist, Manrope, sans-serif;
     }
 
     .scenario-actions {
@@ -1729,7 +1707,7 @@ type SileoPosition =
         gap: 40px;
     }
 
-    .contract-grid pre {
+    .contract-grid :global(pre[data-language]) {
         margin-top: 24px;
         border: 1px solid var(--surface-3);
         background: var(--surface-1);
@@ -1994,7 +1972,7 @@ type SileoPosition =
             width: 100%;
         }
 
-        pre {
+        :global(pre[data-language]) {
             padding: 16px;
             font-size: 12px;
             line-height: 20px;

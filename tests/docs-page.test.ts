@@ -84,6 +84,26 @@ describe('documentation playground', () => {
         expect(getByText('Async promise example copied')).toBeTruthy();
     });
 
+    test('syntax highlights every documentation source block', () => {
+        const { container } = render(Page);
+        const codeBlocks = [...container.querySelectorAll<HTMLElement>('pre[aria-label] code')];
+
+        expect(codeBlocks.length).toBeGreaterThanOrEqual(7);
+        for (const code of codeBlocks) {
+            expect(code.querySelector('[class^="hljs-"], [class*=" hljs-"]')).toBeTruthy();
+        }
+
+        expect(
+            container.querySelector<HTMLElement>('pre[aria-label="Mount example source code"]')?.dataset.language
+        ).toBe('svelte');
+        expect(
+            container.querySelector<HTMLElement>('pre[aria-label="Update example source code"]')?.dataset.language
+        ).toBe('typescript');
+        expect(
+            container.querySelector<HTMLElement>('pre[aria-label="Promise example source code"]')?.dataset.language
+        ).toBe('typescript');
+    });
+
     test('replaces the scenario detail node and announces only the selected label', async () => {
         const { getByRole, getByText, container } = render(Page);
         const initialDetail = container.querySelector('[data-scenario-detail]');

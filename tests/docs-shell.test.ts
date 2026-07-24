@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render } from '@testing-library/svelte';
 import { createRawSnippet, tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import Layout from '../src/routes/+layout.svelte';
@@ -94,6 +94,31 @@ describe('documentation shell', () => {
         expect(navigation.classList.contains('is-compact')).toBe(false);
     });
 
+    test('opens the mobile navigation and closes it with Escape', async () => {
+        const { getByRole, container } = render(Layout, { children });
+        const toggle = getByRole('button', { name: 'Open navigation menu' });
+        const menu = container.querySelector<HTMLElement>('[data-mobile-menu]');
+
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(menu?.getAttribute('aria-hidden')).toBe('true');
+        expect(menu?.hasAttribute('inert')).toBe(true);
+
+        await fireEvent.click(toggle);
+        await tick();
+
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(toggle.getAttribute('aria-label')).toBe('Close navigation menu');
+        expect(menu?.getAttribute('aria-hidden')).toBe('false');
+        expect(menu?.hasAttribute('inert')).toBe(false);
+
+        await fireEvent.keyDown(window, { key: 'Escape' });
+        await tick();
+
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(menu?.getAttribute('aria-hidden')).toBe('true');
+        expect(document.activeElement).toBe(toggle);
+    });
+
     test('marks the current observed section in navigation', async () => {
         const { getByRole, container } = render(Layout, { children });
         await tick();
@@ -150,12 +175,14 @@ describe('documentation shell', () => {
     });
 
     test('renders usable public contracts, not only type names', () => {
-        const { getByText } = render(Page);
+        const { getByText, getByLabelText } = render(Page);
+        const buttonContract = getByLabelText('Button and state contracts').textContent ?? '';
+        const classesContract = getByLabelText('Class and style contracts').textContent ?? '';
 
         expect(getByText(/promise<T>\(/)).toBeTruthy();
-        expect(getByText(/interface SileoButton/)).toBeTruthy();
-        expect(getByText(/buttonHoverBackground\?: string/)).toBeTruthy();
-        expect(getByText(/description\?: string/)).toBeTruthy();
+        expect(buttonContract).toContain('interface SileoButton');
+        expect(classesContract).toContain('buttonHoverBackground?: string');
+        expect(classesContract).toContain('description?: string');
         expect(getByText(/clear\(position\?: SileoPosition\): void/)).toBeTruthy();
     });
 
@@ -175,5 +202,31 @@ describe('documentation shell', () => {
         expect(defaultRevealRule).not.toContain('opacity: 0');
         expect(defaultRevealRule).not.toContain('translateY');
         expect(stylesheet).toContain('[data-reveal]:global(.reveal-enabled)');
+    });
+
+    test('uses a dedicated Svelte grammar for documentation code', async () => {
+        const { readFile } = await import('node:fs/promises');
+        const [packageJson, page] = await Promise.all([
+            readFile('package.json', 'utf8'),
+            readFile('src/routes/+page.svelte', 'utf8')
+        ]);
+
+        expect(packageJson).toContain('"svelte-highlight"');
+        expect(page).toContain("import HighlightSvelte from 'svelte-highlight/HighlightSvelte.svelte'");
+        expect(page).toContain("import Highlight from 'svelte-highlight'");
+        expect(page).toContain("import typescript from 'svelte-highlight/languages/typescript'");
+        expect(page).toContain("import 'svelte-highlight/themes/gruvbox-dark-medium.css'");
+        expect(page).toContain('<HighlightSvelte');
+    });
+
+    test('keeps the mobile menu control small and separated from the logo', async () => {
+        const layout = await import('node:fs/promises').then(({ readFile }) =>
+            readFile('src/routes/+layout.svelte', 'utf8')
+        );
+
+        const mobileRules = layout.match(/@media \(max-width: 520px\) \{([\s\S]*?)@media \(max-width: 350px\)/)?.[1];
+        expect(mobileRules).toBeDefined();
+        expect(mobileRules).toMatch(/\.nav-island\s*\{[\s\S]*?gap: 24px/);
+        expect(mobileRules).toMatch(/\.menu-toggle\s*\{[\s\S]*?width: 32px;[\s\S]*?height: 32px/);
     });
 });
