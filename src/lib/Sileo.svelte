@@ -11,6 +11,7 @@
     const HEIGHT = 40;
     const DEFAULT_ROUNDNESS = 18;
     const BLUR_RATIO = 0.5;
+    const SWAP_COLLAPSE_MS = 200;
     const SWIPE_DISMISS = 30;
     const SWIPE_MAX = 20;
 
@@ -114,6 +115,7 @@
 
     let autoExpandTimer: number | null = null;
     let autoCollapseTimer: number | null = null;
+    let swapTimer: number | null = null;
     let lastRefreshKey: string | undefined = undefined;
     let pending = $state<{ key?: string; payload: View } | null>(null);
     let pointerStart: number | null = null;
@@ -197,15 +199,32 @@
             if (lastRefreshKey === currentRefreshKey) return;
             lastRefreshKey = currentRefreshKey;
 
+            if (swapTimer) {
+                clearTimeout(swapTimer);
+                swapTimer = null;
+            }
+
             if (currentOpen) {
                 pending = { key: currentRefreshKey, payload: currentNext };
                 isExpanded = false;
+                swapTimer = window.setTimeout(() => {
+                    swapTimer = null;
+                    const nextPending = pending;
+                    if (!nextPending) return;
+                    view = nextPending.payload;
+                    applied = nextPending.key;
+                    pending = null;
+                }, SWAP_COLLAPSE_MS);
             } else {
                 pending = null;
                 view = currentNext;
                 applied = currentRefreshKey;
             }
         });
+    });
+
+    $effect(() => () => {
+        if (swapTimer) clearTimeout(swapTimer);
     });
 
     /* ----------------------------- Auto expand/collapse ----------------------- */
@@ -307,15 +326,6 @@
             (skinVars ? `;${skinVars}` : '')
     );
 
-    function commitPending(expectedKey?: string) {
-        const nextPending = pending;
-        if (!nextPending || nextPending.key !== expectedKey || open) return;
-
-        view = nextPending.payload;
-        applied = nextPending.key;
-        pending = null;
-    }
-
     const motion = createToastMotion({
         elements: () => ({
             root: buttonEl,
@@ -329,16 +339,26 @@
         exiting: () => exiting,
         edge: () => expand,
         baseHeight: () => measurements.baseHeight,
-        pendingKey: () => pending?.key,
-        hasPending: () => pending !== null,
-        commitPending,
-        headerKeys: () => ({ current: headerLayer.current.key, previous: headerLayer.prev?.key }),
         clearPreviousHeader: (previous, current) => {
             if (headerLayer.prev?.key === previous && headerLayer.current.key === current) {
                 headerLayer = { ...headerLayer, prev: null };
             }
         }
     });
+
+    function attachCurrentHeader(node: HTMLElement) {
+        const stopMeasuring = measurements.measureTitle(node);
+        const stopMotion = motion.attachHeaderCurrent(node);
+
+        return () => {
+            stopMotion?.();
+            stopMeasuring?.();
+        };
+    }
+
+    function attachPreviousHeader(previousKey: string, currentKey: string) {
+        return (node: HTMLElement) => motion.attachHeaderPrevious(node, previousKey, currentKey);
+    }
 
     /* -------------------------------- Handlers -------------------------------- */
 
@@ -478,7 +498,7 @@
         <div data-sileo-header-stack>
             {#key headerLayer.current.key}
                 <div
-                    {@attach measurements.measureTitle}
+                    {@attach attachCurrentHeader}
                     data-sileo-header-inner
                     data-layer="current"
                 >
@@ -506,6 +526,7 @@
             {/key}
             {#if headerLayer.prev}
                 <div
+                    {@attach attachPreviousHeader(headerLayer.prev.key, headerLayer.current.key)}
                     data-sileo-header-inner
                     data-layer="prev"
                     data-exiting="true"

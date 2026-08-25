@@ -1,8 +1,9 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, test, vi } from 'vitest';
 import { measuredExpandedHeight, resolveToastGeometry } from '../src/lib/geometry.js';
 import {
+    easeTransition,
     MotionRegistry,
-    quickTransition,
     readMotionDuration,
     springTransition,
     type MotionControl
@@ -16,6 +17,11 @@ function control() {
 }
 
 describe('motion lifecycle', () => {
+    test('keeps runtime animation ownership in Motion', async () => {
+        const stylesheet = await readFile('src/lib/styles.css', 'utf8');
+        expect(stylesheet).not.toMatch(/^\s*(?:animation|transition)(?:-[\w-]+)?\s*:/m);
+    });
+
     test('stops an interrupted animation before replacing it', () => {
         const registry = new MotionRegistry();
         const first = control();
@@ -43,8 +49,20 @@ describe('motion lifecycle', () => {
 
     test('makes reduced-motion transitions immediate', () => {
         expect(springTransition(true)).toEqual({ duration: 0, delay: 0 });
-        expect(quickTransition(true)).toEqual({ duration: 0, delay: 0 });
-        expect(springTransition(false)).toMatchObject({ type: 'spring', visualDuration: 0.6 });
+        expect(easeTransition(true)).toEqual({ duration: 0, delay: 0 });
+        expect(springTransition(false)).toEqual({ type: 'spring', duration: 0.6, bounce: 0.25, delay: 0 });
+        expect(springTransition(false, 0, 0.6, 0)).toEqual({
+            type: 'spring',
+            duration: 0.6,
+            bounce: 0,
+            delay: 0
+        });
+        expect(easeTransition(false, 0.42)).toEqual({
+            type: 'tween',
+            duration: 0.42,
+            delay: 0,
+            ease: [0.25, 0.1, 0.25, 1]
+        });
     });
 
     test('reads the public duration variable in seconds', () => {

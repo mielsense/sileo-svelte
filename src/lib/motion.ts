@@ -46,10 +46,10 @@ export function readMotionDuration(node: Element, fallback = 0.6) {
     return fallback;
 }
 
-export const springTransition = (reduced: boolean, delay = 0, visualDuration = 0.6) =>
-    reduced ? ({ duration: 0, delay: 0 } as const) : ({ type: 'spring', visualDuration, bounce: 0.16, delay } as const);
+export const springTransition = (reduced: boolean, delay = 0, duration = 0.6, bounce = 0.25) =>
+    reduced ? ({ duration: 0, delay: 0 } as const) : ({ type: 'spring', duration, bounce, delay } as const);
 
-export const quickTransition = (reduced: boolean, duration = 0.2, delay = 0) =>
+export const easeTransition = (reduced: boolean, duration = 0.2, delay = 0) =>
     reduced
         ? ({ duration: 0, delay: 0 } as const)
-        : ({ type: 'tween', duration, delay, ease: [0.22, 1, 0.36, 1] } as const);
+        : ({ type: 'tween', duration, delay, ease: [0.25, 0.1, 0.25, 1] } as const);

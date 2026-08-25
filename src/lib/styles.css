@@ -152,12 +152,26 @@
     white-space: nowrap;
     opacity: 1;
     filter: blur(0px);
+    transform: translateZ(0);
+}
+
+[data-sileo-header-inner][data-layer='current'] {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    filter: blur(6px);
+}
+
+[data-sileo-header-inner][data-layer='current']:not(:only-child),
+[data-sileo-header-inner][data-exiting='true'] {
+    will-change: opacity, filter;
 }
 
 [data-sileo-header-inner][data-layer='prev'] {
     position: absolute;
     left: 0;
     top: 0;
+    z-index: 0;
     pointer-events: none;
 }
 
