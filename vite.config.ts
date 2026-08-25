@@ -1,8 +1,9 @@
+import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig(({ mode }) => ({
-    plugins: [sveltekit()],
+    plugins: [tailwindcss(), sveltekit()],
     ...(mode === 'test' ? { resolve: { conditions: ['browser'] } } : {}),
     test: {
         environment: 'happy-dom',

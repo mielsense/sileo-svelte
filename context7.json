@@ -1,0 +1,14 @@
+{
+    "$schema": "https://context7.com/schema/context7.json",
+    "projectTitle": "Sileo Svelte",
+    "description": "Physics-based toast notifications for Svelte 5",
+    "folders": ["content/docs"],
+    "excludeFolders": ["node_modules", ".svelte-kit", "dist"],
+    "excludeFiles": ["CHANGELOG.md"],
+    "rules": [
+        "Import Toaster and sileo from sileo-svelte.",
+        "Import sileo-svelte/styles.css once near the application root.",
+        "Mount one Toaster instance for the application.",
+        "Use the id returned by a state helper when updating an existing toast."
+    ]
+}

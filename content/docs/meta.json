@@ -1,0 +1,16 @@
+{
+    "sections": [
+        {
+            "title": "Getting started",
+            "pages": ["index", "installation"]
+        },
+        {
+            "title": "Guides",
+            "pages": ["creating-toasts", "async-flows", "customization"]
+        },
+        {
+            "title": "Reference",
+            "pages": ["api", "toaster"]
+        }
+    ]
+}

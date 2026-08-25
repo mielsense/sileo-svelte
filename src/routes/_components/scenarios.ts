@@ -273,7 +273,7 @@ function run() {
         id: 'styles',
         label: 'Custom styles',
         eyebrow: 'Per toast variables',
-        outcome: 'Adjust the product surface with typed style values without adding a utility CSS dependency.',
+        outcome: 'Set typed colors and roundness on one toast. The package does not require a utility CSS framework.',
         parameters: ['roundness: 8', 'fill: #1f1f1f', 'button style: local'],
         source: (position) =>
             scriptExample(

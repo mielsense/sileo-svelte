@@ -1,0 +1,250 @@
+:root {
+    --ink: #ededed;
+    --background: #0b0b0c;
+    --card: #111113;
+    --popover: #161619;
+    --foreground: var(--ink);
+    --muted-foreground: #969696;
+    --faint-foreground: #6f6f6f;
+    --border: color-mix(in srgb, var(--ink) 14%, transparent);
+    --border-subtle: color-mix(in srgb, var(--ink) 8%, transparent);
+    --accent: color-mix(in srgb, var(--ink) 6%, transparent);
+    --secondary: #202024;
+    --primary: #ff3e00;
+    --primary-foreground: #ffffff;
+    --ring: #ff6a3d;
+    --code-background: #070708;
+    --header-background: rgb(11 11 12 / 92%);
+    --syntax-comment: #8b949e;
+    --syntax-keyword: #ff7b72;
+    --syntax-string: #a5d6ff;
+    --syntax-number: #79c0ff;
+    --syntax-title: #d2a8ff;
+    --syntax-variable: #ffa657;
+    --syntax-attribute: #7ee787;
+    --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    --radius: 10px;
+    --shadow-resting: 0 1px 2px rgb(0 0 0 / 20%);
+    --shadow-floating: 0 1px 2px rgb(0 0 0 / 28%), 0 8px 24px rgb(0 0 0 / 22%);
+    color-scheme: dark;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    font-weight: 400;
+    background: var(--background);
+    color: var(--foreground);
+}
+:root[data-theme='light'] {
+    --ink: #292929;
+    --background: #f7f7f7;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --foreground: var(--ink);
+    --muted-foreground: #6d6d6d;
+    --faint-foreground: #929292;
+    --border: color-mix(in srgb, var(--ink) 12%, transparent);
+    --border-subtle: color-mix(in srgb, var(--ink) 7%, transparent);
+    --accent: color-mix(in srgb, var(--ink) 5%, transparent);
+    --secondary: #e9e9e9;
+    --primary: #e93800;
+    --code-background: #f1f1f1;
+    --header-background: rgb(247 247 247 / 92%);
+    --syntax-comment: #6e7781;
+    --syntax-keyword: #cf222e;
+    --syntax-string: #0a3069;
+    --syntax-number: #0550ae;
+    --syntax-title: #8250df;
+    --syntax-variable: #953800;
+    --syntax-attribute: #116329;
+    --shadow-resting: 0 1px 2px rgb(0 0 0 / 6%);
+    --shadow-floating: 0 1px 2px rgb(0 0 0 / 8%), 0 8px 24px rgb(0 0 0 / 8%);
+    color-scheme: light;
+}
+*,
+*:before,
+*:after {
+    box-sizing: border-box;
+}
+html {
+    min-width: 320px;
+    scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+    overflow-x: clip;
+    background: var(--background);
+}
+body {
+    min-width: 320px;
+    min-height: 100dvh;
+    margin: 0;
+    overflow-x: clip;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+button,
+input {
+    font: inherit;
+}
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+a {
+    color: inherit;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ring) 55%, transparent);
+    outline-offset: 2px;
+}
+::selection {
+    background: color-mix(in srgb, var(--primary) 32%, transparent);
+}
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.skip-link {
+    position: fixed;
+    z-index: 1000;
+    inset-block-start: 8px;
+    inset-inline-start: 12px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 13px;
+    text-decoration: none;
+    transform: translateY(-150%);
+    transition: transform 0.14s ease-out;
+}
+.skip-link:focus {
+    transform: translateY(0);
+}
+.site-header {
+    position: sticky;
+    z-index: 100;
+    inset-block-start: 0;
+    display: grid;
+    min-height: 56px;
+    padding-inline: 18px;
+    grid-template-columns: minmax(12rem, 1fr) auto minmax(12rem, 1fr);
+    align-items: center;
+    border-block-end: 1px solid var(--border-subtle);
+    background: var(--header-background);
+    backdrop-filter: blur(16px);
+}
+.wordmark {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 9px;
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+}
+.svelte-badge {
+    display: inline-flex;
+    min-height: 24px;
+    padding: 3px 8px;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--primary) 78%, #6b1b00);
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+}
+.header-links {
+    display: flex;
+    padding: 3px;
+    align-items: center;
+    gap: 2px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+}
+.header-links a {
+    min-height: 28px;
+    padding: 5px 11px;
+    border-radius: 7px;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    text-decoration: none;
+}
+.header-links a:hover,
+.header-links a[aria-current='page'] {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+.header-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 7px;
+}
+.header-agent-link {
+    padding: 5px 8px;
+    border-radius: 999px;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-decoration: none;
+}
+.header-agent-link:hover {
+    background: var(--accent);
+    color: var(--foreground);
+}
+.icon-button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted-foreground);
+    box-shadow: var(--shadow-resting);
+    cursor: pointer;
+    transition:
+        color 0.14s ease-out,
+        background-color 0.14s ease-out,
+        transform 0.1s ease-out;
+}
+.icon-button:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+.icon-button:active {
+    transform: translateY(1px) scale(0.98);
+}
+.icon-button svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+.theme-toggle svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.4;
+}

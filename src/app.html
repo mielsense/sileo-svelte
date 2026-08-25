@@ -4,8 +4,19 @@
         <meta charset="utf-8" />
         <meta
             name="color-scheme"
-            content="dark"
+            content="dark light"
         />
+        <script>
+            try {
+                const savedTheme = localStorage.getItem('sileo-theme');
+                const theme = savedTheme === 'light' ? 'light' : 'dark';
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            } catch {
+                document.documentElement.dataset.theme = 'dark';
+                document.documentElement.style.colorScheme = 'dark';
+            }
+        </script>
         <link
             rel="icon"
             href="%sveltekit.assets%/favicon.svg"

@@ -1,0 +1,11 @@
+@import 'tailwindcss' source('../');
+
+@theme {
+    --color-svelte: #ff3e00;
+    --shadow-elevated:
+        inset 0 1px 0 color-mix(in srgb, var(--foreground) 7%, transparent), inset 0 -1px 0 rgb(0 0 0 / 18%),
+        0 1px 2px rgb(0 0 0 / 28%), 0 5px 12px rgb(0 0 0 / 14%);
+    --shadow-svelte:
+        inset 0 1px 0 rgb(255 255 255 / 28%), inset 0 -1px 0 rgb(107 27 0 / 55%), 0 1px 2px rgb(0 0 0 / 28%),
+        0 5px 14px color-mix(in srgb, var(--primary) 20%, transparent);
+}
