@@ -10,10 +10,14 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: 1.3.14
             - run: bun install --frozen-lockfile
             - run: bun run lint
             - run: bun run check
             - run: bun run test
+            - run: bunx playwright install --with-deps chromium webkit
+            - run: bun run test:browser
             - run: bun run build
             - run: bun run prepack
             - run: bun run test:package

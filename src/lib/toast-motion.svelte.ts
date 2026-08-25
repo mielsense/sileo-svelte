@@ -1,4 +1,4 @@
-import { animate } from 'motion';
+import { animate, motionValue, styleEffect } from 'motion';
 import { untrack } from 'svelte';
 import { prefersReducedMotion } from 'svelte/motion';
 import type { ToastGeometry } from './geometry.js';
@@ -17,16 +17,20 @@ interface ToastMotionOptions {
     geometry: () => ToastGeometry;
     open: () => boolean;
     exiting: () => boolean;
+    collapseRequest: () => string | false;
     edge: () => 'top' | 'bottom';
     baseHeight: () => number;
     clearPreviousHeader: (previous: string, current: string) => void;
+    onCollapsed: (request: string) => void;
+    onExitComplete: () => void;
 }
 
 export function createToastMotion(options: ToastMotionOptions) {
     const controls = new MotionRegistry();
     let ready = $state(false);
     let duration = $state(0.6);
-    let renderedGeometry: ToastGeometry | null = null;
+    const swipeY = motionValue(0);
+    const collapseProgress = motionValue(0);
 
     const transition = (reduced: boolean, delay = 0, bounce = 0.25) =>
         springTransition(reduced, delay, duration, bounce);
@@ -47,7 +51,11 @@ export function createToastMotion(options: ToastMotionOptions) {
 
         ready = true;
         controls.start('presence', () => animate(node, keyframes, springTransition(reduced, 0, duration * 0.66)));
-        return () => controls.stopAll();
+        return () => {
+            controls.stopAll();
+            swipeY.stop();
+            collapseProgress.stop();
+        };
     }
 
     $effect(() => {
@@ -65,7 +73,10 @@ export function createToastMotion(options: ToastMotionOptions) {
                   ? { opacity: 0 }
                   : { opacity: 0, y: offset, scale: 0.95 };
 
-        controls.start('presence', () => animate(root, keyframes, springTransition(reduced, 0, duration * 0.66)));
+        const control = controls.start('presence', () =>
+            animate(root, keyframes, springTransition(reduced, 0, duration * 0.66))
+        );
+        void control.finished.then(options.onExitComplete, () => undefined);
     });
 
     $effect(() => {
@@ -82,18 +93,15 @@ export function createToastMotion(options: ToastMotionOptions) {
         const target = options.geometry();
         const targetOpen = options.open();
         const reduced = prefersReducedMotion.current;
-        const previous = renderedGeometry ?? target;
-
-        renderedGeometry = target;
         if (!pill || !body || !ready) return;
 
         controls.start('pill', () =>
             animate(
                 pill,
                 {
-                    attrX: [previous.pillX, target.pillX],
-                    height: [previous.pillHeight, target.pillHeight],
-                    width: [previous.pillWidth, target.pillWidth]
+                    attrX: target.pillX,
+                    height: target.pillHeight,
+                    width: target.pillWidth
                 },
                 transition(reduced)
             )
@@ -102,11 +110,30 @@ export function createToastMotion(options: ToastMotionOptions) {
             animate(
                 body,
                 {
-                    height: [previous.bodyHeight, target.bodyHeight],
+                    height: target.bodyHeight,
                     opacity: targetOpen ? 1 : 0
                 },
                 transition(reduced, 0, targetOpen ? 0.25 : 0)
             )
+        );
+    });
+
+    $effect(() => {
+        const collapseRequest = options.collapseRequest();
+        const reduced = prefersReducedMotion.current;
+        if (!ready || !collapseRequest) return;
+
+        collapseProgress.jump(0);
+        const control = controls.start('collapse-lifecycle', () =>
+            animate(collapseProgress, 1, easeTransition(reduced, duration))
+        );
+        void control.then(
+            () => {
+                if (options.collapseRequest() === collapseRequest && !options.open()) {
+                    options.onCollapsed(collapseRequest);
+                }
+            },
+            () => undefined
         );
     });
 
@@ -161,8 +188,15 @@ export function createToastMotion(options: ToastMotionOptions) {
         const localDuration = headerDuration(node);
         const control = animate(
             node,
-            reduced ? { opacity: [0, 1] } : { opacity: [0, 1], filter: ['blur(6px)', 'blur(0px)'] },
-            springTransition(reduced, 0, localDuration)
+            reduced
+                ? { opacity: [0, 1] }
+                : {
+                      opacity: [0, 1],
+                      filter: ['blur(3px)', 'blur(0px)'],
+                      y: [2, 0],
+                      scale: [0.985, 1]
+                  },
+            easeTransition(reduced, Math.min(localDuration * 0.38, 0.24), Math.min(localDuration * 0.04, 0.025))
         );
         const loader = animateLoaders(node, reduced);
         void control.finished.then(
@@ -184,8 +218,15 @@ export function createToastMotion(options: ToastMotionOptions) {
         const localDuration = headerDuration(node);
         const control = animate(
             node,
-            reduced ? { opacity: 0 } : { opacity: 0, filter: 'blur(6px)' },
-            easeTransition(reduced, localDuration * 0.7)
+            reduced
+                ? { opacity: [1, 0] }
+                : {
+                      opacity: [1, 0],
+                      filter: ['blur(0px)', 'blur(3px)'],
+                      y: [0, -2],
+                      scale: [1, 0.985]
+                  },
+            easeTransition(reduced, Math.min(localDuration * 0.3, 0.2))
         );
         const loader = animateLoaders(node, reduced);
 
@@ -205,13 +246,22 @@ export function createToastMotion(options: ToastMotionOptions) {
             return ready;
         },
         attachToast,
+        attachSwipe(node: HTMLElement) {
+            const cancel = styleEffect(node, { y: swipeY });
+            return () => {
+                cancel();
+                swipeY.stop();
+            };
+        },
         attachHeaderCurrent,
         attachHeaderPrevious,
-        moveForSwipe(node: HTMLElement, y: number) {
-            controls.start('swipe', () => animate(node, { y }, { duration: 0 }));
+        moveForSwipe(y: number) {
+            swipeY.set(y);
         },
-        resetSwipe(node: HTMLElement) {
-            controls.start('swipe', () => animate(node, { y: 0 }, { duration: 0 }));
+        resetSwipe() {
+            controls.start('swipe', () =>
+                animate(swipeY, 0, { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 })
+            );
         },
         stopSwipe() {
             controls.stop('swipe');

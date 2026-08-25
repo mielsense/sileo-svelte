@@ -17,9 +17,11 @@ This project is still in beta. Each release is marked as breaking or non-breakin
 ### Changed
 
 - Toast motion now runs through the framework-independent `motion` package. CSS is responsible only for layout and appearance.
-- Interrupted animations are stopped before replacements begin, and all active controls are released when a toast unmounts.
+- Interrupted shape animations now retarget from their rendered geometry, and all active controls are released when a toast unmounts.
+- Header states crossfade with a short blur and positional overlap instead of flashing between text values.
+- Swipe gestures use progressive resistance, velocity-aware dismissal, and a spring return.
 - Geometry calculations now live in a small typed module instead of being mixed into rendering and gesture code.
-- `--sileo-duration` still controls visual timing and is now read by the Motion runtime when each toast mounts.
+- `--sileo-duration` controls visual timing and lifecycle completion instead of competing with fixed removal timers.
 - The documentation has a dark-first homepage, searchable Markdown pages, syntax highlighting, copy controls, machine-readable routes, and an isolated playground.
 
 ### Fixed
@@ -28,6 +30,8 @@ This project is still in beta. Each release is marked as breaking or non-breakin
 - Playground examples no longer leak notifications into the documentation route.
 - Toast geometry stays aligned after runtime width and height changes.
 - Promise completions cannot overwrite a newer toast that reused the same id.
+- Old close and dismiss timers cannot remove a newer toast that reused the same id.
+- A stable live region now announces the first toast as well as later updates.
 - Keyboard, pointer, touch, live-region, and narrow-viewport behavior have been hardened.
 
 ### Upgrade
@@ -39,7 +43,7 @@ bun add -D svelte@^5.56.0
 bun add sileo-svelte
 ```
 
-The public `Toaster`, `sileo`, option, and type APIs are unchanged.
+`SileoPromiseOptions` now permits an `action` result without a redundant `success` mapping. Existing calls remain valid.
 
 ## 0.1.1 — 2026-05-20
 

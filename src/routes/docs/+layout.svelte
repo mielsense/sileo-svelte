@@ -2,7 +2,7 @@
     import { tick } from 'svelte';
     import { resolve } from '$app/paths';
     import { page } from '$app/state';
-    import { navigation, type TocItem } from '$lib/docs/source.js';
+    import { navigation, type TocItem } from '$docs/source.js';
 
     let { children } = $props();
     let leftRail: HTMLElement;

@@ -77,7 +77,7 @@ const actionInitial = (position: SileoPosition): ScenarioToast => ({
                     state: 'success',
                     title: 'Payment captured'
                 });
-            }, 900);
+            }, 1400);
         }
     }
 });
@@ -213,7 +213,7 @@ function run() {
                         state: 'success',
                         title: 'Payment captured'
                     });
-                }, 900);
+                }, 1400);
             }
         }
     });
@@ -222,7 +222,7 @@ function run() {
         initial: ({ position }) => actionInitial(position),
         completion: {
             trigger: 'button',
-            delayMs: 900,
+            delayMs: 1400,
             pending: {
                 state: 'loading',
                 title: 'Retrying payment'

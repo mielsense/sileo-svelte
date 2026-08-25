@@ -247,9 +247,10 @@ import 'sileo-svelte/styles.css';
 `badgeBackground`, `buttonColor`, `buttonBackground`, and
 `buttonHoverBackground`.
 
-`SileoPromiseOptions<T>` requires `loading`, `success`, and `error`. It also
-accepts `id`, `action`, and `position`. Success, action, and error values can be
-options or mapping functions.
+`SileoPromiseOptions<T>` requires `loading`, `error`, and either `success` or
+`action`. It also accepts `id` and `position`. When both `success` and `action`
+are supplied, the action mapping is the final state. Success, action, and error
+values can be options or mapping functions.
 
 ## Styling
 

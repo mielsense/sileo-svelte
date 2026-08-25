@@ -1,8 +1,9 @@
 <script lang="ts">
     import { tick } from 'svelte';
     import { resolve } from '$app/paths';
-    import { getDoc, headingId } from '$lib/docs/source.js';
-    import type { DocPageData } from '$lib/docs/types.js';
+    import { getDoc, headingId } from '$docs/source.js';
+    import type { DocPageData } from '$docs/types.js';
+    import { PACKAGE_VERSION } from '../../version.js';
 
     let { data }: { data: DocPageData } = $props();
     let article: HTMLElement;
@@ -104,7 +105,9 @@
     class="doc-main"
 >
     <header class="doc-header">
-        <div class="doc-kicker"><span>Documentation</span><span aria-hidden="true">/</span><span>v0.1.1</span></div>
+        <div class="doc-kicker">
+            <span>Documentation</span><span aria-hidden="true">/</span><span>v{PACKAGE_VERSION}</span>
+        </div>
         <h1>{data.metadata.title}</h1>
         <p>{data.metadata.description}</p>
         <div class="doc-actions">

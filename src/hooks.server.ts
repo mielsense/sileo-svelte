@@ -1,4 +1,4 @@
-import { getDoc } from '$lib/docs/source.js';
+import { getDoc } from '$docs/source.js';
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {

@@ -3,6 +3,7 @@
     import { resolve } from '$app/paths';
     import Sileo from '$lib/Sileo.svelte';
     import type { SileoState } from '$lib/index.js';
+    import { PACKAGE_VERSION } from '../version.js';
     import './home.css';
 
     const demoSteps: Array<{ state: SileoState; title: string; description: string }> = [
@@ -14,7 +15,7 @@
         {
             state: 'success',
             title: 'Release published',
-            description: 'sileo-svelte@0.1.1 is live.'
+            description: `sileo-svelte@${PACKAGE_VERSION} is live.`
         },
         {
             state: 'action',
@@ -134,7 +135,7 @@
                     class="home-demo-context"
                     aria-hidden="true"
                 >
-                    <div><span>Release</span><strong>v0.1.1</strong></div>
+                    <div><span>Release</span><strong>v{PACKAGE_VERSION}</strong></div>
                     <div><span>Runtime</span><strong>Svelte 5</strong></div>
                 </div>
 

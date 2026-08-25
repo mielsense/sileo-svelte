@@ -1,5 +1,5 @@
 import type { Component } from 'svelte';
-import metaSource from '../../../content/docs/meta.json?raw';
+import metaSource from '../../content/docs/meta.json?raw';
 
 interface MarkdownModule {
     default: Component;
@@ -34,11 +34,11 @@ export interface DocNavigationSection {
 
 const meta = JSON.parse(metaSource) as { sections: Array<{ title: string; pages: string[] }> };
 
-const compiledModules = import.meta.glob<MarkdownModule>('../../../content/docs/*.md', {
+const compiledModules = import.meta.glob<MarkdownModule>('../../content/docs/*.md', {
     eager: true
 });
 
-const rawModules = import.meta.glob<string>('../../../content/docs/*.md', {
+const rawModules = import.meta.glob<string>('../../content/docs/*.md', {
     eager: true,
     import: 'default',
     query: '?raw'

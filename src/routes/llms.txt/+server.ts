@@ -1,4 +1,4 @@
-import { orderedPages } from '$lib/docs/source.js';
+import { orderedPages } from '$docs/source.js';
 import type { RequestHandler } from './$types.js';
 
 export const GET: RequestHandler = ({ url }) => {

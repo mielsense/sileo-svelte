@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getDoc, serializeDoc } from '$lib/docs/source.js';
+import { getDoc, serializeDoc } from '$docs/source.js';
 import type { PageLoad } from './$types.js';
 
 export const load: PageLoad = ({ params }) => {

@@ -3,6 +3,7 @@
     import type { SileoButton, SileoClasses, SileoState, SileoStyles } from './types.js';
     import { measuredExpandedHeight, resolveToastGeometry } from './geometry.js';
     import { ToastMeasurements } from './measurements.svelte.js';
+    import { resistedSwipeOffset, shouldDismissSwipe } from './motion.js';
     import { createToastMotion } from './toast-motion.svelte.js';
     import StateIcon from './StateIcon.svelte';
 
@@ -11,9 +12,6 @@
     const HEIGHT = 40;
     const DEFAULT_ROUNDNESS = 18;
     const BLUR_RATIO = 0.5;
-    const SWAP_COLLAPSE_MS = 200;
-    const SWIPE_DISMISS = 30;
-    const SWIPE_MAX = 20;
 
     /* ---------------------------------- Types --------------------------------- */
 
@@ -60,6 +58,8 @@
         onmouseleave?: (e: MouseEvent) => void;
         onActivate?: () => void;
         onDismiss?: () => void;
+        onCollapseComplete?: () => void;
+        onExitComplete?: () => void;
     }
 
     let {
@@ -86,7 +86,9 @@
         onmouseenter,
         onmouseleave,
         onActivate,
-        onDismiss
+        onDismiss,
+        onCollapseComplete,
+        onExitComplete
     }: Props = $props();
     const componentId = $props.id();
 
@@ -115,10 +117,10 @@
 
     let autoExpandTimer: number | null = null;
     let autoCollapseTimer: number | null = null;
-    let swapTimer: number | null = null;
     let lastRefreshKey: string | undefined = undefined;
     let pending = $state<{ key?: string; payload: View } | null>(null);
     let pointerStart: number | null = null;
+    let pointerStartedAt = 0;
     let pointerMaxDelta = 0;
     let pointerStartedOpen: boolean | null = null;
     let suppressClick = false;
@@ -199,32 +201,15 @@
             if (lastRefreshKey === currentRefreshKey) return;
             lastRefreshKey = currentRefreshKey;
 
-            if (swapTimer) {
-                clearTimeout(swapTimer);
-                swapTimer = null;
-            }
-
             if (currentOpen) {
                 pending = { key: currentRefreshKey, payload: currentNext };
                 isExpanded = false;
-                swapTimer = window.setTimeout(() => {
-                    swapTimer = null;
-                    const nextPending = pending;
-                    if (!nextPending) return;
-                    view = nextPending.payload;
-                    applied = nextPending.key;
-                    pending = null;
-                }, SWAP_COLLAPSE_MS);
             } else {
                 pending = null;
                 view = currentNext;
                 applied = currentRefreshKey;
             }
         });
-    });
-
-    $effect(() => () => {
-        if (swapTimer) clearTimeout(swapTimer);
     });
 
     /* ----------------------------- Auto expand/collapse ----------------------- */
@@ -337,13 +322,25 @@
         geometry: () => geometry,
         open: () => open,
         exiting: () => exiting,
+        collapseRequest: () => (closing ? `close:${refreshKey ?? id}` : pending ? `refresh:${pending.key}` : false),
         edge: () => expand,
         baseHeight: () => measurements.baseHeight,
         clearPreviousHeader: (previous, current) => {
             if (headerLayer.prev?.key === previous && headerLayer.current.key === current) {
                 headerLayer = { ...headerLayer, prev: null };
             }
-        }
+        },
+        onCollapsed: () => {
+            const nextPending = pending;
+            if (nextPending) {
+                view = nextPending.payload;
+                applied = nextPending.key;
+                pending = null;
+                return;
+            }
+            if (closing) onCollapseComplete?.();
+        },
+        onExitComplete: () => onExitComplete?.()
     });
 
     function attachCurrentHeader(node: HTMLElement) {
@@ -424,6 +421,7 @@
         if (!onDismiss) return;
         suppressClick = false;
         pointerStart = e.clientY;
+        pointerStartedAt = e.timeStamp;
         pointerMaxDelta = 0;
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
@@ -436,9 +434,7 @@
             const dy = e.clientY - pointerStart;
             pointerMaxDelta = Math.max(pointerMaxDelta, Math.abs(dy));
             if (pointerMaxDelta > 5) suppressClick = true;
-            const sign = dy > 0 ? 1 : -1;
-            const clamped = Math.min(Math.abs(dy), SWIPE_MAX) * sign;
-            motion.moveForSwipe(el, clamped);
+            motion.moveForSwipe(resistedSwipeOffset(dy));
         };
 
         const onUp = (e: PointerEvent) => {
@@ -447,10 +443,10 @@
             pointerStart = null;
             suppressClick = pointerMaxDelta > 5;
             pointerMaxDelta = 0;
-            if (Math.abs(dy) > SWIPE_DISMISS) {
+            if (shouldDismissSwipe(dy, e.timeStamp - pointerStartedAt)) {
                 onDismiss?.();
             } else {
-                motion.resetSwipe(el);
+                motion.resetSwipe();
             }
         };
 
@@ -459,7 +455,7 @@
             pointerMaxDelta = 0;
             pointerStartedOpen = null;
             suppressClick = false;
-            motion.resetSwipe(el);
+            motion.resetSwipe();
         };
 
         const onLostCapture = () => {
@@ -577,136 +573,141 @@
         onpointerdown={handlePointerDown}
     >
         <div
-            data-sileo-canvas
-            data-edge={expand}
+            {@attach motion.attachSwipe}
+            data-sileo-swipe
         >
-            <svg
-                data-sileo-svg
-                width={measurements.canvasWidth}
-                height={geometry.canvasHeight}
-                viewBox={`0 0 ${measurements.canvasWidth} ${geometry.canvasHeight}`}
-                aria-hidden="true"
-            >
-                <defs>
-                    <filter
-                        id={filterId}
-                        x="-20%"
-                        y="-20%"
-                        width="140%"
-                        height="140%"
-                        color-interpolation-filters="sRGB"
-                    >
-                        <feGaussianBlur
-                            in="SourceGraphic"
-                            stdDeviation={blur}
-                            result="blur"
-                        />
-                        <feColorMatrix
-                            in="blur"
-                            type="matrix"
-                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10"
-                            result="goo"
-                        />
-                        <feComposite
-                            in="SourceGraphic"
-                            in2="goo"
-                            operator="atop"
-                        />
-                    </filter>
-                </defs>
-                <g filter={`url(#${filterId})`}>
-                    <rect
-                        bind:this={pillEl}
-                        data-sileo-pill
-                        x={geometry.pillX}
-                        width={geometry.pillWidth}
-                        height={geometry.pillHeight}
-                        rx={resolvedRoundness}
-                        ry={resolvedRoundness}
-                        fill={view.fill}
-                    />
-                    <rect
-                        bind:this={bodyEl}
-                        data-sileo-body
-                        y={measurements.baseHeight}
-                        width={measurements.canvasWidth}
-                        height={geometry.bodyHeight}
-                        rx={resolvedRoundness}
-                        ry={resolvedRoundness}
-                        fill={view.fill}
-                    />
-                </g>
-            </svg>
-        </div>
-
-        {#if hasDesc && !isLoading}
-            <button
-                {@attach measurements.measureHeader}
-                bind:this={headerEl}
-                type="button"
-                tabindex={view.button ? 0 : -1}
-                aria-expanded={open}
-                aria-controls={contentId}
-                data-sileo-header
-                data-sileo-trigger
-                data-edge={expand}
-                onfocusin={handleFocusIn}
-                onfocusout={handleFocusOut}
-                onkeydown={handleKeyDown}
-                onclick={handleTriggerClick}
-            >
-                {@render headerLayers()}
-            </button>
-        {:else}
             <div
-                {@attach measurements.measureHeader}
-                bind:this={headerEl}
-                data-sileo-header
+                data-sileo-canvas
                 data-edge={expand}
             >
-                {@render headerLayers()}
-            </div>
-        {/if}
-
-        {#if hasDesc}
-            <div
-                bind:this={contentRootEl}
-                id={contentId}
-                data-sileo-content
-                data-edge={expand}
-                data-visible={open}
-            >
-                <div
-                    {@attach measurements.measureContent}
-                    data-sileo-description
-                    class={view.classes?.description}
+                <svg
+                    data-sileo-svg
+                    width={measurements.canvasWidth}
+                    height={geometry.canvasHeight}
+                    viewBox={`0 0 ${measurements.canvasWidth} ${geometry.canvasHeight}`}
+                    aria-hidden="true"
                 >
-                    {#if view.description}
-                        {#if isSnippet(view.description)}
-                            {@render view.description()}
-                        {:else}
-                            {view.description}
-                        {/if}
-                    {/if}
-                    {#if view.button}
-                        <button
-                            type="button"
-                            data-sileo-button
-                            data-state={view.toastState}
-                            class={view.classes?.button}
-                            onfocusin={handleFocusIn}
-                            onfocusout={handleFocusOut}
-                            onkeydown={handleKeyDown}
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                view.button?.onClick(id);
-                            }}
+                    <defs>
+                        <filter
+                            id={filterId}
+                            x="-20%"
+                            y="-20%"
+                            width="140%"
+                            height="140%"
+                            color-interpolation-filters="sRGB"
                         >
-                            {view.button.title}
-                        </button>
-                    {/if}
-                </div>
+                            <feGaussianBlur
+                                in="SourceGraphic"
+                                stdDeviation={blur}
+                                result="blur"
+                            />
+                            <feColorMatrix
+                                in="blur"
+                                type="matrix"
+                                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10"
+                                result="goo"
+                            />
+                            <feComposite
+                                in="SourceGraphic"
+                                in2="goo"
+                                operator="atop"
+                            />
+                        </filter>
+                    </defs>
+                    <g filter={`url(#${filterId})`}>
+                        <rect
+                            bind:this={pillEl}
+                            data-sileo-pill
+                            x={geometry.pillX}
+                            width={geometry.pillWidth}
+                            height={geometry.pillHeight}
+                            rx={resolvedRoundness}
+                            ry={resolvedRoundness}
+                            fill={view.fill}
+                        />
+                        <rect
+                            bind:this={bodyEl}
+                            data-sileo-body
+                            y={measurements.baseHeight}
+                            width={measurements.canvasWidth}
+                            height={geometry.bodyHeight}
+                            rx={resolvedRoundness}
+                            ry={resolvedRoundness}
+                            fill={view.fill}
+                        />
+                    </g>
+                </svg>
             </div>
-        {/if}
+
+            {#if hasDesc && !isLoading}
+                <button
+                    {@attach measurements.measureHeader}
+                    bind:this={headerEl}
+                    type="button"
+                    tabindex={view.button ? 0 : -1}
+                    aria-expanded={open}
+                    aria-controls={contentId}
+                    data-sileo-header
+                    data-sileo-trigger
+                    data-edge={expand}
+                    onfocusin={handleFocusIn}
+                    onfocusout={handleFocusOut}
+                    onkeydown={handleKeyDown}
+                    onclick={handleTriggerClick}
+                >
+                    {@render headerLayers()}
+                </button>
+            {:else}
+                <div
+                    {@attach measurements.measureHeader}
+                    bind:this={headerEl}
+                    data-sileo-header
+                    data-edge={expand}
+                >
+                    {@render headerLayers()}
+                </div>
+            {/if}
+
+            {#if hasDesc}
+                <div
+                    bind:this={contentRootEl}
+                    id={contentId}
+                    data-sileo-content
+                    data-edge={expand}
+                    data-visible={open}
+                >
+                    <div
+                        {@attach measurements.measureContent}
+                        data-sileo-description
+                        class={view.classes?.description}
+                    >
+                        {#if view.description}
+                            {#if isSnippet(view.description)}
+                                {@render view.description()}
+                            {:else}
+                                {view.description}
+                            {/if}
+                        {/if}
+                        {#if view.button}
+                            <button
+                                type="button"
+                                data-sileo-button
+                                data-state={view.toastState}
+                                class={view.classes?.button}
+                                onfocusin={handleFocusIn}
+                                onfocusout={handleFocusOut}
+                                onkeydown={handleKeyDown}
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    view.button?.onClick(id);
+                                }}
+                            >
+                                {view.button.title}
+                            </button>
+                        {/if}
+                    </div>
+                </div>
+            {/if}
+        </div>
     </div>
 {/if}

@@ -46,7 +46,7 @@ This keeps the same toast and position throughout the task.
 
 ## Add a follow-up action
 
-The optional `action` state runs after success. Use it when the completed task has one useful next step.
+The optional `action` mapping replaces the success state. Use it when the completed task has one useful next step instead of a passive confirmation.
 
 ```ts
 await sileo.promise(() => createReport(), {

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -13,7 +13,7 @@ describe('published package contract', () => {
         expect(packageJson.scripts['test:package']).toBe('vitest run tests/package.test.ts');
     });
 
-    it('compiles the public root types and stylesheet export as a consumer', () => {
+    it('installs the packed artifact and builds a Svelte consumer for the browser and SSR', () => {
         expect(packageJson.exports['.']).toEqual({
             types: './dist/index.d.ts',
             svelte: './dist/index.js'
@@ -24,64 +24,76 @@ describe('published package contract', () => {
         expect(existsSync(join(root, packageJson.exports['./styles.css']))).toBe(true);
 
         const fixture = mkdtempSync(join(tmpdir(), 'sileo-svelte-consumer-'));
-        const fixtureModules = join(fixture, 'node_modules');
-        mkdirSync(fixtureModules);
-        symlinkSync(root, join(fixtureModules, 'sileo-svelte'), 'dir');
 
         try {
+            const packed = JSON.parse(
+                execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', fixture], {
+                    cwd: root,
+                    encoding: 'utf8',
+                    stdio: 'pipe'
+                })
+            )[0] as { filename: string; files: Array<{ path: string }> };
+            const archive = join(fixture, packed.filename);
+
+            expect(packed.files.some((file) => file.path.startsWith('package/dist/docs/'))).toBe(false);
+            mkdirSync(join(fixture, 'src'));
             writeFileSync(
-                join(fixture, 'consumer.ts'),
-                `import {
-    Toaster,
-    sileo,
-    type SileoApi,
-    type SileoScopedApi,
-    type SileoInput,
-    type SileoOptions,
-    type SileoPosition,
-    type SileoState,
-    type SileoClasses,
-    type SileoStyles,
-    type SileoButton,
-    type SileoPromiseOptions
-} from 'sileo-svelte';
+                join(fixture, 'package.json'),
+                JSON.stringify({
+                    private: true,
+                    type: 'module',
+                    dependencies: {
+                        'sileo-svelte': `file:${archive}`,
+                        svelte: packageJson.devDependencies.svelte,
+                        vite: packageJson.devDependencies.vite,
+                        '@sveltejs/vite-plugin-svelte': packageJson.devDependencies['@sveltejs/vite-plugin-svelte']
+                    }
+                })
+            );
+            writeFileSync(
+                join(fixture, 'src', 'App.svelte'),
+                `<script lang="ts">
+import { Toaster, sileo, type SileoPromiseOptions } from 'sileo-svelte';
 import 'sileo-svelte/styles.css';
 
-const api: SileoApi = sileo;
-const scoped: SileoScopedApi = api.with({ position: 'bottom-right' });
-const input: SileoInput = { title: 'Ready', icon: null };
-const options: SileoOptions = { ...input, position: 'bottom-right' };
-const position: SileoPosition = 'bottom-right';
-const state: SileoState = 'success';
-const classes: SileoClasses = { title: 'toast-title' };
-const styles: SileoStyles = { titleColor: 'white' };
-const button: SileoButton = { title: 'Close', onClick: (id) => api.close(id) };
 const promiseOptions: SileoPromiseOptions<string> = {
     loading: { title: 'Loading' },
-    success: (value) => ({ title: value }),
+    action: (value) => ({ title: value, button: { title: 'Open', onClick: () => undefined } }),
     error: () => ({ title: 'Failed' })
 };
+void promiseOptions;
+</script>
 
-void [Toaster, scoped, input, position, state, classes, styles, button, promiseOptions];
+<button onclick={() => sileo.success('Ready')}>Notify</button>
+<Toaster />
 `
             );
             writeFileSync(
-                join(fixture, 'tsconfig.json'),
-                JSON.stringify({
-                    compilerOptions: {
-                        allowArbitraryExtensions: true,
-                        module: 'ESNext',
-                        moduleResolution: 'Bundler',
-                        noEmit: true,
-                        strict: true,
-                        target: 'ES2022'
-                    },
-                    files: ['consumer.ts']
-                })
+                join(fixture, 'src', 'main.ts'),
+                `import { mount } from 'svelte';
+import App from './App.svelte';
+mount(App, { target: document.getElementById('app')! });
+`
+            );
+            writeFileSync(join(fixture, 'src', 'ssr.ts'), `export { default } from './App.svelte';\n`);
+            writeFileSync(
+                join(fixture, 'vite.config.ts'),
+                `import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+export default defineConfig({ plugins: [svelte()] });
+`
+            );
+            writeFileSync(
+                join(fixture, 'index.html'),
+                `<div id="app"></div><script type="module" src="/src/main.ts"></script>\n`
             );
 
+            execFileSync('bun', ['install', '--ignore-scripts'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' });
             expect(() =>
-                execFileSync(join(root, 'node_modules', '.bin', 'tsc'), ['-p', join(fixture, 'tsconfig.json')], {
+                execFileSync('bunx', ['vite', 'build'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' })
+            ).not.toThrow();
+            expect(() =>
+                execFileSync('bunx', ['vite', 'build', '--ssr', 'src/ssr.ts', '--outDir', 'dist-ssr'], {
                     cwd: fixture,
                     encoding: 'utf8',
                     stdio: 'pipe'
@@ -90,5 +102,5 @@ void [Toaster, scoped, input, position, state, classes, styles, button, promiseO
         } finally {
             rmSync(fixture, { recursive: true, force: true });
         }
-    });
+    }, 30_000);
 });

@@ -5,6 +5,8 @@ import {
     easeTransition,
     MotionRegistry,
     readMotionDuration,
+    resistedSwipeOffset,
+    shouldDismissSwipe,
     springTransition,
     type MotionControl
 } from '../src/lib/motion.js';
@@ -75,6 +77,21 @@ describe('motion lifecycle', () => {
 
         node.style.setProperty('--sileo-duration', 'invalid');
         expect(readMotionDuration(node)).toBe(0.6);
+    });
+
+    test('adds progressive resistance without hard-clamping a swipe', () => {
+        expect(resistedSwipeOffset(0)).toBe(0);
+        expect(resistedSwipeOffset(20)).toBeGreaterThan(15);
+        expect(resistedSwipeOffset(80)).toBeGreaterThan(resistedSwipeOffset(40));
+        expect(resistedSwipeOffset(-80)).toBe(-resistedSwipeOffset(80));
+        expect(resistedSwipeOffset(10_000)).toBeLessThan(80);
+    });
+
+    test('dismisses deliberate distance swipes and short fast flicks', () => {
+        expect(shouldDismissSwipe(34, 500)).toBe(true);
+        expect(shouldDismissSwipe(18, 80)).toBe(true);
+        expect(shouldDismissSwipe(18, 500)).toBe(false);
+        expect(shouldDismissSwipe(4, 10)).toBe(false);
     });
 });
 

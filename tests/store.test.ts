@@ -127,6 +127,34 @@ describe('sileo store', () => {
         expect(store.toasts.map((toast) => toast.id)).toEqual([second]);
     });
 
+    test('an old dismiss timer cannot remove a replacement with the same explicit id', async () => {
+        const first = deferred<string>();
+        const second = deferred<string>();
+        const firstPromise = sileo.promise(first.promise, {
+            id: 'reused',
+            loading: { title: 'First request' },
+            success: { title: 'First complete' },
+            error: { title: 'First failed' }
+        });
+
+        sileo.dismiss('reused');
+        const secondPromise = sileo.promise(second.promise, {
+            id: 'reused',
+            loading: { title: 'Second request' },
+            success: { title: 'Second complete' },
+            error: { title: 'Second failed' }
+        });
+
+        vi.advanceTimersByTime(600);
+
+        expect(store.toasts).toHaveLength(1);
+        expect(store.toasts[0]).toEqual(expect.objectContaining({ id: 'reused', title: 'Second request' }));
+
+        first.resolve('first');
+        second.resolve('second');
+        await Promise.all([firstPromise, secondPromise]);
+    });
+
     test('close removes the requested toast after collapse and exit transitions', () => {
         const id = sileo.show('Close me');
 
@@ -137,6 +165,34 @@ describe('sileo store', () => {
         vi.advanceTimersByTime(1250);
 
         expect(store.toasts).toHaveLength(0);
+    });
+
+    test('an old close timer cannot remove a replacement with the same explicit id', async () => {
+        const first = deferred<string>();
+        const second = deferred<string>();
+        const firstPromise = sileo.promise(first.promise, {
+            id: 'reused-close',
+            loading: { title: 'First request' },
+            success: { title: 'First complete' },
+            error: { title: 'First failed' }
+        });
+
+        sileo.close('reused-close');
+        const secondPromise = sileo.promise(second.promise, {
+            id: 'reused-close',
+            loading: { title: 'Second request' },
+            success: { title: 'Second complete' },
+            error: { title: 'Second failed' }
+        });
+
+        vi.advanceTimersByTime(1250);
+
+        expect(store.toasts).toHaveLength(1);
+        expect(store.toasts[0]).toEqual(expect.objectContaining({ id: 'reused-close', title: 'Second request' }));
+
+        first.resolve('first');
+        second.resolve('second');
+        await Promise.all([firstPromise, secondPromise]);
     });
 
     test('clears only a selected position', () => {

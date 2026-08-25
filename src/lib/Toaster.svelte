@@ -1,10 +1,13 @@
 <script lang="ts">
-    import { onDestroy, type Snippet } from 'svelte';
+    import { onDestroy, onMount, tick, type Snippet } from 'svelte';
 
     import Sileo from './Sileo.svelte';
     import {
         store,
         dismissToast,
+        completeToastCollapse,
+        completeToastExit,
+        registerToastInstance,
         pillAlign,
         expandDir,
         timeoutKey,
@@ -28,20 +31,26 @@
 
     /* ------------------------------- Latest ID -------------------------------- */
 
-    const latest = $derived.by(() => {
+    const latestItem = $derived.by(() => {
         const toasts = store.toasts;
         for (let i = toasts.length - 1; i >= 0; i--) {
-            if (!toasts[i].exiting) return toasts[i].id;
+            if (!toasts[i].exiting) return toasts[i];
         }
         return undefined;
     });
+    const latest = $derived(latestItem?.id);
 
     /* ---------------------------------- State --------------------------------- */
 
     let activeId = $derived(latest);
     let hovering = false;
+    let liveMounted = $state(false);
+    let announcement = $state('');
+    let announcedKey: string | undefined;
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- timers are non-reactive internal state; SvelteMap causes infinite loops in the timer $effect
     const timers = new Map<string, number>();
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- lifecycle registrations are non-reactive disposers
+    const mounted = new Map<string, () => void>();
 
     /* --------------------------------- Sync ----------------------------------- */
 
@@ -53,7 +62,31 @@
         store.globalOptions = options;
     });
 
+    onMount(() => {
+        liveMounted = true;
+        return () => {
+            liveMounted = false;
+        };
+    });
+
+    $effect(() => {
+        const item = latestItem;
+        if (!liveMounted || !item) return;
+
+        const key = timeoutKey(item);
+        if (announcedKey === key) return;
+        announcedKey = key;
+        announcement = '';
+        void tick().then(() => {
+            if (liveMounted && store.toasts.some((toast) => timeoutKey(toast) === key)) {
+                announcement = item.title ?? item.state ?? 'Notification';
+            }
+        });
+    });
+
     onDestroy(() => {
+        for (const unregister of mounted.values()) unregister();
+        mounted.clear();
         if (store.position === position) store.position = 'top-right';
         if (store.globalOptions === options) store.globalOptions = undefined;
     });
@@ -78,7 +111,7 @@
 
             timers.set(
                 key,
-                window.setTimeout(() => dismissToast(item.id), dur)
+                window.setTimeout(() => dismissToast(item.id, item.instanceId), dur)
             );
         }
     }
@@ -88,8 +121,19 @@
     $effect(() => {
         const toasts = store.toasts;
 
-        // Clean up timers for removed toasts
         const toastKeys = new Set(toasts.map(timeoutKey));
+        for (const [key, unregister] of mounted) {
+            if (!toastKeys.has(key)) {
+                unregister();
+                mounted.delete(key);
+            }
+        }
+        for (const item of toasts) {
+            const key = timeoutKey(item);
+            if (!mounted.has(key)) mounted.set(key, registerToastInstance(item));
+        }
+
+        // Clean up timers for removed toasts
         for (const [key, timer] of timers) {
             if (!toastKeys.has(key)) {
                 clearTimeout(timer);
@@ -175,12 +219,20 @@
     {@render children()}
 {/if}
 
+<div
+    data-sileo-live-region
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+>
+    {announcement}
+</div>
+
 {#each SILEO_POSITIONS as pos (pos)}
     {#if byPosition[pos]?.length}
         <section
             data-sileo-viewport
             data-position={pos}
-            aria-live="polite"
             style={getViewportStyle(pos)}
         >
             {#each byPosition[pos] ?? [] as item (item.id)}
@@ -206,7 +258,9 @@
                     onmouseenter={() => handleMouseEnter(item.id)}
                     onmouseleave={() => handleMouseLeave()}
                     onActivate={() => handleActivate(item.id)}
-                    onDismiss={() => dismissToast(item.id)}
+                    onDismiss={() => dismissToast(item.id, item.instanceId)}
+                    onCollapseComplete={() => completeToastCollapse(item.id, item.instanceId)}
+                    onExitComplete={() => completeToastExit(item.id, item.instanceId)}
                 />
             {/each}
         </section>

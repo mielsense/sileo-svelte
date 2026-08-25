@@ -43,7 +43,10 @@ const config = {
         }
     }),
     kit: {
-        adapter: adapter()
+        adapter: adapter(),
+        alias: {
+            $docs: 'src/docs'
+        }
     }
 };
 

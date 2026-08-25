@@ -191,16 +191,22 @@ describe('Toaster', () => {
         expect(newerToast.getAttribute('data-expanded')).toBe('false');
     });
 
-    test('announces through a polite live viewport', async () => {
-        sileo.info('Notice');
+    test('announces through a stable polite live region', async () => {
         const { container } = render(Toaster);
 
         await tick();
+        const liveRegion = container.querySelector('[data-sileo-live-region]');
+        expect(liveRegion?.getAttribute('aria-live')).toBe('polite');
+        expect(liveRegion?.textContent).toBe('');
 
-        expect(container.querySelector('[data-sileo-viewport]')?.getAttribute('aria-live')).toBe('polite');
+        sileo.info('Notice');
+        await tick();
+        await tick();
+
+        expect(liveRegion?.textContent).toBe('Notice');
     });
 
-    test('renders one polite live region for each active position', async () => {
+    test('renders one visual viewport for each active position and one live region overall', async () => {
         sileo.success({ title: 'First', position: 'top-right' });
         sileo.info({ title: 'Second', position: 'top-right' });
         sileo.warning({ title: 'Third', position: 'bottom-left' });
@@ -210,7 +216,8 @@ describe('Toaster', () => {
 
         expect(container.querySelectorAll('[data-sileo-viewport][data-position="top-right"]')).toHaveLength(1);
         expect(container.querySelectorAll('[data-sileo-viewport][data-position="bottom-left"]')).toHaveLength(1);
-        expect(container.querySelectorAll('[data-sileo-viewport][aria-live="polite"]')).toHaveLength(2);
+        expect(container.querySelectorAll('[data-sileo-viewport][aria-live]')).toHaveLength(0);
+        expect(container.querySelectorAll('[data-sileo-live-region][aria-live="polite"]')).toHaveLength(1);
     });
 
     test('keeps animation behavior out of the static stylesheet', async () => {

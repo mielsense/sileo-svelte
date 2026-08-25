@@ -116,7 +116,7 @@ describe('scenario contracts', () => {
         retryScenario.run({ position: 'top-right', richDescription, richIcon });
         const actionToast = store.toasts.at(-1)!;
         actionToast.button?.onClick(actionToast.id);
-        await vi.advanceTimersByTimeAsync(900);
+        await vi.advanceTimersByTimeAsync(1400);
         await tick();
         expect(store.toasts.at(-1)).toEqual(expect.objectContaining({ state: 'success', title: 'Payment captured' }));
     });

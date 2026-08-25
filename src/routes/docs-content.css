@@ -10,16 +10,20 @@
     min-width: 0;
 }
 .docs-left-rail {
+    position: sticky;
+    inset-block-start: 57px;
+    align-self: start;
+    box-sizing: border-box;
+    height: calc(100dvh - 57px);
     padding: 32px 20px 72px 18px;
     border-inline-end: 1px solid var(--border-subtle);
 }
-.left-rail-sticky,
 .toc-sticky {
     position: sticky;
     inset-block-start: 88px;
 }
 .left-rail-sticky {
-    max-height: calc(100dvh - 112px);
+    height: 100%;
     overflow-y: auto;
     scrollbar-color: var(--border) transparent;
 }

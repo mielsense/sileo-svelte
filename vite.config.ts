@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => ({
     },
     test: {
         environment: 'happy-dom',
+        include: ['tests/**/*.test.ts'],
+        exclude: ['tests/browser/**'],
         setupFiles: ['./tests/setup.ts']
     }
 }));

@@ -1,4 +1,4 @@
-import { getDoc } from '$lib/docs/source.js';
+import { getDoc } from '$docs/source.js';
 import type { RequestHandler } from './$types.js';
 
 export const GET: RequestHandler = () => {

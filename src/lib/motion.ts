@@ -53,3 +53,14 @@ export const easeTransition = (reduced: boolean, duration = 0.2, delay = 0) =>
     reduced
         ? ({ duration: 0, delay: 0 } as const)
         : ({ type: 'tween', duration, delay, ease: [0.25, 0.1, 0.25, 1] } as const);
+
+export function resistedSwipeOffset(distance: number, limit = 72) {
+    if (distance === 0) return 0;
+    return Math.sign(distance) * limit * (1 - Math.exp(-Math.abs(distance) / limit));
+}
+
+export function shouldDismissSwipe(distance: number, elapsedMs: number) {
+    const magnitude = Math.abs(distance);
+    const velocity = magnitude / Math.max(elapsedMs, 1);
+    return magnitude >= 32 || (magnitude >= 10 && velocity >= 0.18);
+}

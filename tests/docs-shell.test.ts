@@ -3,7 +3,7 @@ import { createRawSnippet, tick } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import Layout from '../src/routes/+layout.svelte';
 import DocumentPage from '../src/routes/_components/DocumentPage.svelte';
-import { getDoc, navigation, orderedPages, serializeDoc } from '../src/lib/docs/source.js';
+import { getDoc, navigation, orderedPages, serializeDoc } from '../src/docs/source.js';
 import { store } from '../src/lib/store.svelte.js';
 
 const children = createRawSnippet(() => ({ render: () => '<main id="main-content"></main>' }));

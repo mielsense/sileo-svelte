@@ -39,15 +39,17 @@ sileo.promise<T>(
 ```
 
 ```ts
-interface SileoPromiseOptions<T> {
+type PromiseResult<T> = SileoOptions | ((data: T) => SileoOptions);
+
+type SileoPromiseOptions<T> = {
     id?: string;
     loading: Pick<SileoOptions, 'title' | 'icon'>;
-    success: SileoOptions | ((data: T) => SileoOptions);
     error: SileoOptions | ((error: unknown) => SileoOptions);
-    action?: SileoOptions | ((data: T) => SileoOptions);
     position?: SileoPosition;
-}
+} & ({ success: PromiseResult<T>; action?: undefined } | { action: PromiseResult<T>; success?: PromiseResult<T> });
 ```
+
+Provide either `success` or `action`. If both are present, `action` becomes the final state.
 
 ## Scoped defaults
 

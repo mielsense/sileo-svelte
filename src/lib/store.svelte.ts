@@ -53,23 +53,92 @@ export const store = new SileoStore();
 
 export const timeoutKey = (t: SileoItem) => `${t.id}:${t.instanceId}`;
 
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- module-level lifecycle bookkeeping is intentionally non-reactive
+const mountedInstances = new Set<string>();
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- module-level timer bookkeeping is intentionally non-reactive
+const lifecycleFallbacks = new Map<string, ReturnType<typeof setTimeout>>();
+
+function clearLifecycleFallback(key: string) {
+    const timer = lifecycleFallbacks.get(key);
+    if (timer !== undefined) clearTimeout(timer);
+    lifecycleFallbacks.delete(key);
+}
+
+function findInstance(id: string, instanceId: string) {
+    return store.toasts.find((toast) => toast.id === id && toast.instanceId === instanceId);
+}
+
+export function completeToastExit(id: string, instanceId: string) {
+    const key = `${id}:${instanceId}`;
+    clearLifecycleFallback(key);
+    mountedInstances.delete(key);
+    store.update((prev) => prev.filter((toast) => toast.id !== id || toast.instanceId !== instanceId));
+}
+
+function scheduleLifecycleFallback(item: SileoItem, phase: 'collapse' | 'exit') {
+    const key = timeoutKey(item);
+    if (mountedInstances.has(key) || lifecycleFallbacks.has(key)) return;
+
+    const delay = phase === 'collapse' ? COLLAPSE_DURATION : EXIT_DURATION;
+    lifecycleFallbacks.set(
+        key,
+        setTimeout(() => {
+            lifecycleFallbacks.delete(key);
+            if (phase === 'collapse') {
+                dismissToast(item.id, item.instanceId);
+            } else {
+                completeToastExit(item.id, item.instanceId);
+            }
+        }, delay)
+    );
+}
+
+export function registerToastInstance(item: SileoItem) {
+    const key = timeoutKey(item);
+    mountedInstances.add(key);
+    clearLifecycleFallback(key);
+
+    return () => {
+        mountedInstances.delete(key);
+        const current = findInstance(item.id, item.instanceId);
+        if (current?.exiting) scheduleLifecycleFallback(current, 'exit');
+        else if (current?.closing) scheduleLifecycleFallback(current, 'collapse');
+    };
+}
+
 /* ------------------------------- Toast API -------------------------------- */
 
-export const dismissToast = (id: string) => {
-    const item = store.toasts.find((t) => t.id === id);
+export const dismissToast = (id: string, expectedInstanceId?: string) => {
+    const item = store.toasts.find(
+        (toast) => toast.id === id && (!expectedInstanceId || toast.instanceId === expectedInstanceId)
+    );
     if (!item || item.exiting) return;
 
-    store.update((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
-
-    setTimeout(() => store.update((prev) => prev.filter((t) => t.id !== id)), EXIT_DURATION);
+    store.update((prev) =>
+        prev.map((toast) =>
+            toast.id === id && toast.instanceId === item.instanceId ? { ...toast, exiting: true } : toast
+        )
+    );
+    scheduleLifecycleFallback({ ...item, exiting: true }, 'exit');
 };
 
-const closeToast = (id: string) => {
-    const item = store.toasts.find((t) => t.id === id);
+export const completeToastCollapse = (id: string, instanceId: string) => {
+    clearLifecycleFallback(`${id}:${instanceId}`);
+    dismissToast(id, instanceId);
+};
+
+const closeToast = (id: string, expectedInstanceId?: string) => {
+    const item = store.toasts.find(
+        (toast) => toast.id === id && (!expectedInstanceId || toast.instanceId === expectedInstanceId)
+    );
     if (!item || item.closing || item.exiting) return;
 
-    store.update((prev) => prev.map((t) => (t.id === id ? { ...t, closing: true } : t)));
-    setTimeout(() => dismissToast(id), COLLAPSE_DURATION);
+    store.update((prev) =>
+        prev.map((toast) =>
+            toast.id === id && toast.instanceId === item.instanceId ? { ...toast, closing: true } : toast
+        )
+    );
+    scheduleLifecycleFallback({ ...item, closing: true }, 'collapse');
 };
 
 const mergeScopedOptions = <T extends InternalSileoOptions>(base: Partial<SileoOptions> | undefined, opts: T): T => {
@@ -184,6 +253,14 @@ const createToast = (options: InternalSileoOptions) => {
     const prev = hasExplicitId ? live.find((t) => t.id === id) : undefined;
     const item = buildSileoItem(merged, id, prev?.position);
 
+    for (const toast of store.toasts) {
+        if (toast.id === id) {
+            const key = timeoutKey(toast);
+            clearLifecycleFallback(key);
+            mountedInstances.delete(key);
+        }
+    }
+
     if (prev) {
         store.update((p) => p.map((t) => (t.id === id ? item : t)));
     } else {
@@ -202,19 +279,32 @@ const updateToast = (
     if (!existing || (expectedInstanceId && existing.instanceId !== expectedInstanceId)) return;
 
     const item = buildSileoItem(mergeUpdateOptions(existing, scopedDefaults, options), id, existing.position);
+    const previousKey = timeoutKey(existing);
+    clearLifecycleFallback(previousKey);
+    mountedInstances.delete(previousKey);
     store.update((prev) => prev.map((t) => (t.id === id ? item : t)));
 };
 
+function clearToasts(position?: SileoPosition) {
+    for (const item of store.toasts) {
+        if (position && item.position !== position) continue;
+        const key = timeoutKey(item);
+        clearLifecycleFallback(key);
+        mountedInstances.delete(key);
+    }
+    store.update((prev) => (position ? prev.filter((item) => item.position !== position) : []));
+}
+
 /* ------------------------------ Promise Types ----------------------------- */
 
-export interface SileoPromiseOptions<T = unknown> {
+type PromiseResult<T> = SileoOptions | ((data: T) => SileoOptions);
+
+export type SileoPromiseOptions<T = unknown> = {
     id?: string;
     loading: Pick<SileoOptions, 'title' | 'icon'>;
-    success: SileoOptions | ((data: T) => SileoOptions);
     error: SileoOptions | ((err: unknown) => SileoOptions);
-    action?: SileoOptions | ((data: T) => SileoOptions);
     position?: SileoPosition;
-}
+} & ({ success: PromiseResult<T>; action?: undefined } | { action: PromiseResult<T>; success?: PromiseResult<T> });
 
 export interface SileoScopedApi {
     show: (input: SileoInput, description?: SileoDescriptionInput) => string;
@@ -317,8 +407,7 @@ const createSileoApi = (scopedDefaults?: Partial<SileoOptions>): SileoApi => {
         dismiss: dismissToast,
         close: closeToast,
 
-        clear: (position?: SileoPosition) =>
-            store.update((prev) => (position ? prev.filter((t) => t.position !== position) : [])),
+        clear: clearToasts,
 
         with: (defaults: Partial<SileoOptions>) => createSileoApi(mergeScopedOptions(scopedDefaults, defaults))
     };
