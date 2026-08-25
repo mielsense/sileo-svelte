@@ -31,7 +31,6 @@
     });
     let previewKey = $state('preview-0');
     let previewExiting = $state(false);
-    let executionId: string | undefined;
     let sequence = 0;
     let timer: number | undefined;
 
@@ -73,7 +72,6 @@
         selectedScenarioId = id;
         selectedStatus = `${scenarios.find((scenario) => scenario.id === id)?.label ?? 'Scenario'} selected`;
         copyStatus = '';
-        executionId = undefined;
         const next = scenarios.find((scenario) => scenario.id === id);
         if (next) updatePreview(next.initial(context()));
     }
@@ -82,12 +80,10 @@
         clearCompletion();
         const currentContext = context();
         updatePreview(selectedScenario.initial(currentContext));
-        executionId = selectedScenario.run(currentContext);
         if (selectedScenario.completion?.trigger === 'run') scheduleCompletion(selectedScenario.completion);
     }
 
     function handlePreviewButton() {
-        if (executionId) preview.button?.onClick(executionId);
         const completion = selectedScenario.completion;
         if (completion?.trigger === 'button') {
             if (completion.pending) updatePreview(completion.pending);

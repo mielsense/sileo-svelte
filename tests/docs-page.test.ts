@@ -64,9 +64,7 @@ describe('documentation playground', () => {
         const preview = container.querySelector('[data-playground-preview]');
         expect(preview?.querySelector('[data-sileo-toast]')?.getAttribute('data-state')).toBe('action');
         expect(preview?.textContent).toContain('Payment needs attention');
-        expect(store.toasts.at(-1)).toEqual(
-            expect.objectContaining({ position: 'bottom-left', state: 'action', title: 'Payment needs attention' })
-        );
+        expect(store.toasts).toEqual([]);
     });
 
     test('does not let a pending completion overwrite a new selection', async () => {
