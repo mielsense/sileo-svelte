@@ -37,7 +37,9 @@
     const selectedScenario = $derived(scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0]);
     const selectedSource = $derived(selectedScenario.source(selectedPosition));
     const highlightedSource = $derived(registry.highlight(selectedSource, { language: svelteLanguage.name }).value);
-    const canonicalUrl = $derived(new URL(page.url.pathname, page.url.origin).href);
+    const canonicalUrl = $derived(
+        page.url.origin === 'null' ? page.url.pathname : new URL(page.url.pathname, page.url.origin).href
+    );
     const previewButton = $derived.by<SileoButton | undefined>(() => {
         if (!preview.button) return undefined;
         return { title: preview.button.title, onClick: handlePreviewButton };

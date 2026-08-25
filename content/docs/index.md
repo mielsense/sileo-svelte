@@ -55,7 +55,7 @@ Call `sileo` from any client-side component.
 
 ## Requirements
 
-Sileo Svelte requires Svelte 5. The package has no utility CSS dependency. Import its stylesheet once, then use normal Svelte components and TypeScript.
+Sileo Svelte requires Svelte 5.56 or newer. Motion is included as a runtime dependency; the package has no utility CSS dependency. Import its stylesheet once, then use normal Svelte components and TypeScript.
 
 ## Try the real component
 
@@ -63,4 +63,4 @@ The [playground](/playground) runs every documented scenario against the package
 
 ## Next step
 
-Read [Installation](/docs/installation) for the full root layout setup and default options.
+Read [Installation](/docs/installation) for the full root layout setup and default options. Check the [Changelog](/docs/changelog) before upgrading between beta versions.

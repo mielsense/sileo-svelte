@@ -39,6 +39,18 @@ sileo.action({
 
 Keep enough contrast between the fill, text, badge, and button colors. Test both collapsed and expanded states.
 
+## Motion timing
+
+Set `--sileo-duration` to change the toast's visual motion. The default is `600ms`.
+
+```css
+:root {
+    --sileo-duration: 500ms;
+}
+```
+
+Sileo reads this value when a toast mounts and uses it for its Motion spring and state transitions. People who prefer reduced motion get immediate layout and opacity changes with no transform-heavy entrance or loader motion.
+
 ## Typed style slots
 
 The `styles` object changes supported visual values on one toast.

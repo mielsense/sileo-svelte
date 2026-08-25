@@ -1,9 +1,10 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte';
+    import { onDestroy, type Snippet } from 'svelte';
 
     import Sileo from './Sileo.svelte';
     import {
         store,
+        dismissToast,
         pillAlign,
         expandDir,
         timeoutKey,
@@ -12,7 +13,7 @@
         type SileoOffsetConfig
     } from './store.svelte.js';
     import { SILEO_POSITIONS, type SileoOptions, type SileoPosition } from './types.js';
-    import { DEFAULT_DURATION, EXIT_DURATION } from './constants.js';
+    import { DEFAULT_DURATION } from './constants.js';
 
     /* ---------------------------------- Props --------------------------------- */
 
@@ -52,16 +53,12 @@
         store.globalOptions = options;
     });
 
+    onDestroy(() => {
+        if (store.position === position) store.position = 'top-right';
+        if (store.globalOptions === options) store.globalOptions = undefined;
+    });
+
     /* --------------------------------- Helpers -------------------------------- */
-
-    function dismissToast(id: string) {
-        const item = store.toasts.find((t) => t.id === id);
-        if (!item || item.exiting) return;
-
-        store.update((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
-
-        setTimeout(() => store.update((prev) => prev.filter((t) => t.id !== id)), EXIT_DURATION);
-    }
 
     function clearAllTimers() {
         for (const t of timers.values()) clearTimeout(t);
@@ -179,24 +176,21 @@
 {/if}
 
 {#each SILEO_POSITIONS as pos (pos)}
-    {@const items = byPosition[pos]}
-    {#if items && items.length > 0}
-        {@const pill = pillAlign(pos)}
-        {@const dir = expandDir(pos)}
+    {#if byPosition[pos]?.length}
         <section
             data-sileo-viewport
             data-position={pos}
             aria-live="polite"
             style={getViewportStyle(pos)}
         >
-            {#each items as item (item.id)}
+            {#each byPosition[pos] ?? [] as item (item.id)}
                 <Sileo
                     id={item.id}
                     toastState={item.state}
                     title={item.title}
                     description={item.description}
-                    position={pill}
-                    expand={dir}
+                    position={pillAlign(pos)}
+                    expand={expandDir(pos)}
                     icon={item.icon}
                     fill={item.fill}
                     classes={item.classes}

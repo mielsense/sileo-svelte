@@ -1,6 +1,6 @@
 # sileo-svelte
 
-Physics-based, gooey toast notifications for Svelte 5.
+Physics-based, gooey toast notifications for Svelte 5.56 and newer.
 
 [Scenario lab](#scenario-lab) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
 
@@ -253,7 +253,7 @@ options or mapping functions.
 
 ## Styling
 
-The package is Tailwind-free. Override its global custom properties:
+The component package is Tailwind-free and uses Motion for its runtime animation. Override its global custom properties:
 
 ```css
 :root {
@@ -302,8 +302,8 @@ the mechanism recommended for your Tailwind version.
 - Action buttons have visible focus treatment.
 - Hover pauses dismissal only on fine-pointer devices. Touch users can tap to
   expand and swipe vertically to dismiss.
-- `prefers-reduced-motion: reduce` disables nonessential transitions and
-  animations.
+- `prefers-reduced-motion: reduce` removes transform-heavy entrances and loader
+  motion while preserving immediate layout and opacity changes.
 
 ## Scenario lab
 

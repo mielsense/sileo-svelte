@@ -15,4 +15,10 @@ describe('Vite configuration', () => {
         expect(development.resolve?.conditions).toBeUndefined();
         expect(testMode.resolve?.conditions).toEqual(['browser']);
     });
+
+    test('allows the repository-level Markdown content in development', async () => {
+        const development = await resolveConfig('development');
+
+        expect(development.server?.fs?.allow).toContain('.');
+    });
 });

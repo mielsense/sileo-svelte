@@ -213,10 +213,11 @@ describe('Toaster', () => {
         expect(container.querySelectorAll('[data-sileo-viewport][aria-live="polite"]')).toHaveLength(2);
     });
 
-    test('ships a reduced-motion stylesheet contract', async () => {
+    test('keeps animation behavior out of the static stylesheet', async () => {
         const stylesheet = await readFile('src/lib/styles.css', 'utf8');
 
-        expect(stylesheet).toContain('@media (prefers-reduced-motion: reduce)');
+        expect(stylesheet).not.toMatch(/\b(?:animation|transition)(?:-\w+)?:/);
+        expect(stylesheet).not.toContain('@keyframes');
     });
 
     test('uses default dimensions for every collapsed geometry layer', async () => {

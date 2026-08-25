@@ -1,42 +1,6 @@
 /* -------------------------------- Variables ------------------------------- */
 
 :root {
-    --sileo-spring-easing: linear(
-        0,
-        0.002 0.6%,
-        0.007 1.2%,
-        0.015 1.8%,
-        0.026 2.4%,
-        0.041 3.1%,
-        0.06 3.8%,
-        0.108 5.3%,
-        0.157 6.6%,
-        0.214 8%,
-        0.467 13.7%,
-        0.577 16.3%,
-        0.631 17.7%,
-        0.682 19.1%,
-        0.73 20.5%,
-        0.771 21.8%,
-        0.808 23.1%,
-        0.844 24.5%,
-        0.874 25.8%,
-        0.903 27.2%,
-        0.928 28.6%,
-        0.952 30.1%,
-        0.972 31.6%,
-        0.988 33.1%,
-        1.01 35.7%,
-        1.025 38.5%,
-        1.034 41.6%,
-        1.038 45%,
-        1.035 50.1%,
-        1.012 64.2%,
-        1.003 73%,
-        0.999 83.7%,
-        1
-    );
-
     --sileo-duration: 600ms;
     --sileo-height: 40px;
     --sileo-width: 350px;
@@ -66,7 +30,6 @@
     width: min(var(--sileo-width), calc(100vw - 1.5rem));
     height: var(--_h, var(--sileo-height));
     opacity: 0;
-    transform: translateZ(0) scale(0.95);
     transform-origin: center;
     contain: layout style;
     overflow: visible;
@@ -103,36 +66,11 @@
 
 [data-sileo-toast][data-ready='true'] {
     opacity: 1;
-    transform: translateZ(0) scale(1);
-    transition:
-        transform calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        opacity calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        margin-bottom calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        margin-top calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-        height var(--sileo-duration) var(--sileo-spring-easing);
-}
-
-/* Entry animation direction */
-[data-sileo-viewport][data-position^='top'] [data-sileo-toast]:not([data-ready='true']) {
-    transform: translateY(-6px) scale(0.95);
-}
-
-[data-sileo-viewport][data-position^='bottom'] [data-sileo-toast]:not([data-ready='true']) {
-    transform: translateY(6px) scale(0.95);
 }
 
 /* Exit */
-[data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    opacity: 0;
+[data-sileo-toast][data-exiting='true'] {
     pointer-events: none;
-}
-
-[data-sileo-viewport][data-position^='top'] [data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    transform: translateY(-6px) scale(0.95);
-}
-
-[data-sileo-viewport][data-position^='bottom'] [data-sileo-toast][data-ready='true'][data-exiting='true'] {
-    transform: translateY(6px) scale(0.95);
 }
 
 /* ------------------------------- SVG Canvas ------------------------------- */
@@ -169,31 +107,21 @@
 }
 
 [data-sileo-pill] {
-    transform: scaleY(var(--_sy, 1));
-    width: var(--_pw);
-    height: var(--_ph);
+    transform: scaleY(var(--_collapsed-pill-scale, 1));
 }
 
 [data-sileo-body] {
-    transform: scaleY(var(--_by, 0));
-    opacity: var(--_by, 0);
+    transform: scaleY(0);
+    opacity: 0;
 }
 
-[data-sileo-toast][data-ready='true'] [data-sileo-pill] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        width var(--sileo-duration) var(--sileo-spring-easing),
-        x var(--sileo-duration) var(--sileo-spring-easing);
+[data-sileo-toast][data-expanded='true'] [data-sileo-pill] {
+    transform: scaleY(1);
 }
 
-[data-sileo-toast][data-ready='true'][data-expanded='true'] [data-sileo-pill] {
-    transition-delay: calc(var(--sileo-duration) * 0.08);
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-body] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        opacity var(--sileo-duration) var(--sileo-spring-easing);
+[data-sileo-toast][data-expanded='true'] [data-sileo-body] {
+    transform: scaleY(1);
+    opacity: 1;
 }
 
 /* --------------------------------- Header --------------------------------- */
@@ -213,16 +141,8 @@
     height: var(--sileo-height);
     box-sizing: border-box;
     overflow: hidden;
-    left: var(--_px, 0px);
-    transform: var(--_ht);
-    max-width: var(--_pw);
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-header] {
-    transition:
-        transform var(--sileo-duration) var(--sileo-spring-easing),
-        left var(--sileo-duration) var(--sileo-spring-easing),
-        max-width var(--sileo-duration) var(--sileo-spring-easing);
+    left: var(--_pill-x, 0px);
+    max-width: var(--_pill-width, 100%);
 }
 
 [data-sileo-header][data-edge='top'] {
@@ -248,11 +168,6 @@
     white-space: nowrap;
     opacity: 1;
     filter: blur(0px);
-    will-change: opacity, filter;
-}
-
-[data-sileo-header-inner][data-layer='current'] {
-    animation: sileo-header-enter var(--sileo-duration) var(--sileo-spring-easing) both;
 }
 
 [data-sileo-header-inner][data-layer='prev'] {
@@ -260,10 +175,6 @@
     left: 0;
     top: 0;
     pointer-events: none;
-}
-
-[data-sileo-header-inner][data-exiting='true'] {
-    animation: sileo-header-exit 300ms ease forwards;
 }
 
 /* ---------------------------------- Badge --------------------------------- */
@@ -329,15 +240,11 @@
     width: 100%;
     box-sizing: border-box;
     pointer-events: none;
-    opacity: var(--_co, 0);
+    opacity: 0;
 }
 
 [data-sileo-content]:not([data-visible='true']) {
     content-visibility: hidden;
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-content] {
-    transition: opacity calc(var(--sileo-duration) * 0.08) var(--sileo-spring-easing) calc(var(--sileo-duration) * 0.04);
 }
 
 [data-sileo-content][data-edge='top'] {
@@ -350,10 +257,7 @@
 
 [data-sileo-content][data-visible='true'] {
     pointer-events: auto;
-}
-
-[data-sileo-toast][data-ready='true'] [data-sileo-content][data-visible='true'] {
-    transition: opacity var(--sileo-duration) var(--sileo-spring-easing) calc(var(--sileo-duration) * 0.25);
+    opacity: 1;
 }
 
 :where([data-sileo-description]) {
@@ -394,7 +298,6 @@
     cursor: pointer;
     color: var(--sileo-button-color, var(--sileo-btn-color, currentColor));
     background-color: var(--sileo-button-bg, var(--sileo-btn-bg, transparent));
-    transition: background-color 150ms ease;
 }
 
 :where([data-sileo-button]):hover {
@@ -433,38 +336,9 @@
     --_c: var(--sileo-state-action);
 }
 
-/* -------------------------------- Animations ------------------------------ */
-
 [data-sileo-icon='spin'] {
-    animation: sileo-spin 1s linear infinite;
-}
-
-@keyframes sileo-spin {
-    to {
-        rotate: 360deg;
-    }
-}
-
-@keyframes sileo-header-enter {
-    from {
-        opacity: 0;
-        filter: blur(6px);
-    }
-    to {
-        opacity: 1;
-        filter: blur(0px);
-    }
-}
-
-@keyframes sileo-header-exit {
-    from {
-        opacity: 1;
-        filter: blur(0px);
-    }
-    to {
-        opacity: 0;
-        filter: blur(6px);
-    }
+    transform-box: fill-box;
+    transform-origin: center;
 }
 
 /* -------------------------------- Viewports ------------------------------- */
@@ -517,18 +391,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    [data-sileo-toast][data-ready='true']:hover,
-    [data-sileo-toast][data-ready='true'][data-exiting='true'] {
+    [data-sileo-toast][data-ready='true'] {
         will-change: transform, opacity, height;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    [data-sileo-viewport] *,
-    [data-sileo-viewport] *::before,
-    [data-sileo-viewport] *::after {
-        animation-duration: 0.01ms;
-        animation-iteration-count: 1;
-        transition-duration: 0.01ms;
     }
 }

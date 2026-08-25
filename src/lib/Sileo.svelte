@@ -1,23 +1,16 @@
 <script lang="ts">
     import { untrack, type Snippet } from 'svelte';
     import type { SileoButton, SileoClasses, SileoState, SileoStyles } from './types.js';
-    import Check from './icons/Check.svelte';
-    import LoaderCircle from './icons/LoaderCircle.svelte';
-    import X from './icons/X.svelte';
-    import CircleAlert from './icons/CircleAlert.svelte';
-    import LifeBuoy from './icons/LifeBuoy.svelte';
-    import ArrowRight from './icons/ArrowRight.svelte';
+    import { measuredExpandedHeight, resolveToastGeometry } from './geometry.js';
+    import { ToastMeasurements } from './measurements.svelte.js';
+    import { createToastMotion } from './toast-motion.svelte.js';
+    import StateIcon from './StateIcon.svelte';
 
     /* --------------------------------- Config --------------------------------- */
 
     const HEIGHT = 40;
-    const WIDTH = 350;
     const DEFAULT_ROUNDNESS = 18;
     const BLUR_RATIO = 0.5;
-    const PILL_PADDING = 10;
-    const MIN_EXPAND_RATIO = 2.25;
-    const SWAP_COLLAPSE_MS = 200;
-    const HEADER_EXIT_MS = 150;
     const SWIPE_DISMISS = 30;
     const SWIPE_MAX = 20;
 
@@ -112,33 +105,27 @@
     let view: View = $state(undefined as unknown as View);
     let applied: string | undefined = $state(undefined);
     let isExpanded = $state(false);
-    let ready = $state(false);
-    let pillWidth = $state(0);
-    let contentHeight = $state(0);
-    let canvasWidth = $state(WIDTH);
-    let baseHeight = $state(HEIGHT);
+    const measurements = new ToastMeasurements();
 
     /* ---------------------------------- Refs ---------------------------------- */
 
     let buttonEl: HTMLDivElement | undefined = $state();
     let headerEl: HTMLElement | undefined = $state();
-    let contentEl: HTMLDivElement | undefined = $state();
-    let innerEl: HTMLDivElement | undefined = $state();
 
-    let headerExitTimer: number | null = null;
     let autoExpandTimer: number | null = null;
     let autoCollapseTimer: number | null = null;
-    let swapTimer: number | null = null;
     let lastRefreshKey: string | undefined = undefined;
-    let pending: { key?: string; payload: View } | null = null;
-    let headerPad: number | null = null;
+    let pending = $state<{ key?: string; payload: View } | null>(null);
     let pointerStart: number | null = null;
     let pointerMaxDelta = 0;
     let pointerStartedOpen: boolean | null = null;
     let suppressClick = false;
-    let frozenExpanded = $state(HEIGHT * MIN_EXPAND_RATIO);
+    let frozenExpanded = $state(HEIGHT * 2.25);
 
     let headerLayer: HeaderLayer = $state(undefined as unknown as HeaderLayer);
+    let pillEl: SVGRectElement | undefined = $state();
+    let bodyEl: SVGRectElement | undefined = $state();
+    let contentRootEl: HTMLDivElement | undefined = $state();
 
     // Initialize view from next on first run
     let initialized = false;
@@ -170,113 +157,6 @@
     const resolvedRoundness = $derived(Math.max(0, roundness ?? DEFAULT_ROUNDNESS));
     const blur = $derived(resolvedRoundness * BLUR_RATIO);
 
-    /* ------------------------------ Measurements ------------------------------ */
-
-    $effect(() => {
-        const toast = buttonEl;
-        const header = headerEl;
-        if (!toast || !header) return;
-
-        const sizeOf = (entry: ResizeObserverEntry) => {
-            const borderSize = Array.isArray(entry.borderBoxSize) ? entry.borderBoxSize[0] : entry.borderBoxSize;
-            return {
-                width: borderSize?.inlineSize ?? entry.contentRect.width,
-                height: borderSize?.blockSize ?? entry.contentRect.height
-            };
-        };
-
-        const measure = () => {
-            const toastRect = toast.getBoundingClientRect();
-            const headerRect = header.getBoundingClientRect();
-            if (toastRect.width > 0) canvasWidth = toastRect.width;
-            if (headerRect.height > 0) baseHeight = headerRect.height;
-        };
-
-        measure();
-
-        const ro = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const size = sizeOf(entry);
-                if (entry.target === toast && size.width > 0) canvasWidth = size.width;
-                if (entry.target === header && size.height > 0) baseHeight = size.height;
-            }
-        });
-        ro.observe(toast);
-        ro.observe(header);
-
-        return () => ro.disconnect();
-    });
-
-    $effect(() => {
-        const el = innerEl;
-        const header = headerEl;
-        // subscribe to headerLayer.current.key so we re-measure on change
-        void headerLayer.current.key;
-        if (!el || !header) return;
-
-        if (headerPad === null) {
-            const cs = getComputedStyle(header);
-            headerPad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        }
-        const px = headerPad;
-
-        const measure = () => {
-            const w = el.scrollWidth + px + PILL_PADDING;
-            if (w > PILL_PADDING) {
-                pillWidth = w;
-            }
-        };
-        measure();
-
-        let rafId = 0;
-        const ro = new ResizeObserver(() => {
-            cancelAnimationFrame(rafId);
-            rafId = requestAnimationFrame(measure);
-        });
-        ro.observe(el);
-
-        return () => {
-            cancelAnimationFrame(rafId);
-            ro.disconnect();
-        };
-    });
-
-    $effect(() => {
-        const _hasDesc = hasDesc;
-        const el = contentEl;
-        if (!_hasDesc) {
-            contentHeight = 0;
-            return;
-        }
-        if (!el) return;
-
-        const measure = () => {
-            const h = el.scrollHeight;
-            contentHeight = h;
-        };
-        measure();
-
-        let rafId = 0;
-        const ro = new ResizeObserver(() => {
-            cancelAnimationFrame(rafId);
-            rafId = requestAnimationFrame(measure);
-        });
-        ro.observe(el);
-
-        return () => {
-            cancelAnimationFrame(rafId);
-            ro.disconnect();
-        };
-    });
-
-    // Mark ready after first frame
-    $effect(() => {
-        const raf = requestAnimationFrame(() => {
-            ready = true;
-        });
-        return () => cancelAnimationFrame(raf);
-    });
-
     // Header layer management
     $effect(() => {
         const currentHeaderKey = headerKey;
@@ -298,25 +178,6 @@
         });
     });
 
-    // Header exit timer
-    $effect(() => {
-        if (!headerLayer.prev) return;
-
-        if (headerExitTimer) clearTimeout(headerExitTimer);
-
-        headerExitTimer = window.setTimeout(() => {
-            headerExitTimer = null;
-            headerLayer = { ...headerLayer, prev: null };
-        }, HEADER_EXIT_MS);
-
-        return () => {
-            if (headerExitTimer) {
-                clearTimeout(headerExitTimer);
-                headerExitTimer = null;
-            }
-        };
-    });
-
     /* ----------------------------- Refresh logic ------------------------------ */
 
     $effect(() => {
@@ -336,22 +197,9 @@
             if (lastRefreshKey === currentRefreshKey) return;
             lastRefreshKey = currentRefreshKey;
 
-            if (swapTimer) {
-                clearTimeout(swapTimer);
-                swapTimer = null;
-            }
-
             if (currentOpen) {
                 pending = { key: currentRefreshKey, payload: currentNext };
                 isExpanded = false;
-                swapTimer = window.setTimeout(() => {
-                    swapTimer = null;
-                    const p = pending;
-                    if (!p) return;
-                    view = p.payload;
-                    applied = p.key;
-                    pending = null;
-                }, SWAP_COLLAPSE_MS);
             } else {
                 pending = null;
                 view = currentNext;
@@ -407,8 +255,7 @@
 
     /* ------------------------------ Derived values ---------------------------- */
 
-    const minExpanded = $derived(baseHeight * MIN_EXPAND_RATIO);
-    const rawExpanded = $derived(hasDesc ? Math.max(minExpanded, baseHeight + contentHeight) : minExpanded);
+    const rawExpanded = $derived(measuredExpandedHeight(measurements.baseHeight, measurements.contentHeight, hasDesc));
 
     $effect(() => {
         if (open) {
@@ -417,17 +264,17 @@
     });
 
     const expanded = $derived(open ? rawExpanded : frozenExpanded);
-    const svgHeight = $derived(hasDesc ? Math.max(expanded, minExpanded) : baseHeight);
-    const expandedContent = $derived(Math.max(0, expanded - baseHeight));
-    const resolvedPillWidth = $derived(Math.min(Math.max(pillWidth || baseHeight, baseHeight), canvasWidth));
-    const pillHeight = $derived(baseHeight + blur * 3);
-
-    const pillX = $derived(
-        position === 'right'
-            ? canvasWidth - resolvedPillWidth
-            : position === 'center'
-              ? (canvasWidth - resolvedPillWidth) / 2
-              : 0
+    const geometry = $derived(
+        resolveToastGeometry({
+            alignment: position,
+            baseHeight: measurements.baseHeight,
+            blur,
+            canvasWidth: measurements.canvasWidth,
+            expandedHeight: expanded,
+            hasDescription: hasDesc,
+            open,
+            pillWidth: measurements.pillWidth
+        })
     );
 
     /* ------------------------------- Inline styles ---------------------------- */
@@ -453,17 +300,46 @@
     });
 
     const rootStyle = $derived(
-        `--_base-h:${baseHeight}px;` +
-            `--_h:${open ? expanded : baseHeight}px;` +
-            `--_pw:${resolvedPillWidth}px;` +
-            `--_px:${pillX}px;` +
-            `--_sy:${open ? 1 : baseHeight / pillHeight};` +
-            `--_ph:${pillHeight}px;` +
-            `--_by:${open ? 1 : 0};` +
-            `--_ht:translateY(${open ? (expand === 'bottom' ? 3 : -3) : 0}px) scale(${open ? 0.9 : 1});` +
-            `--_co:${open ? 1 : 0}` +
+        `--_base-h:${measurements.baseHeight}px;` +
+            `--_h:${geometry.rootHeight}px;` +
+            `--_pill-x:${geometry.pillX}px;` +
+            `--_pill-width:${geometry.pillWidth}px;` +
+            `--_collapsed-pill-scale:${geometry.collapsedPillScale};` +
             (skinVars ? `;${skinVars}` : '')
     );
+
+    function commitPending(expectedKey?: string) {
+        const nextPending = pending;
+        if (!nextPending || nextPending.key !== expectedKey || open) return;
+
+        view = nextPending.payload;
+        applied = nextPending.key;
+        pending = null;
+    }
+
+    const motion = createToastMotion({
+        elements: () => ({
+            root: buttonEl,
+            pill: pillEl,
+            body: bodyEl,
+            header: headerEl,
+            content: contentRootEl
+        }),
+        geometry: () => geometry,
+        open: () => open,
+        exiting: () => exiting,
+        edge: () => expand,
+        baseHeight: () => measurements.baseHeight,
+        pendingKey: () => pending?.key,
+        hasPending: () => pending !== null,
+        commitPending,
+        headerKeys: () => ({ current: headerLayer.current.key, previous: headerLayer.prev?.key }),
+        clearPreviousHeader: (previous, current) => {
+            if (headerLayer.prev?.key === previous && headerLayer.current.key === current) {
+                headerLayer = { ...headerLayer, prev: null };
+            }
+        }
+    });
 
     /* -------------------------------- Handlers -------------------------------- */
 
@@ -516,20 +392,6 @@
         isExpanded = startedOpen === null ? !isExpanded : !startedOpen;
     }
 
-    function handleTransitionEnd(e: TransitionEvent) {
-        if (e.propertyName !== 'height' && e.propertyName !== 'transform') return;
-        if (open) return;
-        const p = pending;
-        if (!p) return;
-        if (swapTimer) {
-            clearTimeout(swapTimer);
-            swapTimer = null;
-        }
-        view = p.payload;
-        applied = p.key;
-        pending = null;
-    }
-
     function handlePointerDown(e: PointerEvent) {
         if (exiting) return;
         const target = e.target as HTMLElement;
@@ -549,10 +411,7 @@
 
     /* -------------------------------- Swipe ----------------------------------- */
 
-    $effect(() => {
-        const el = buttonEl;
-        if (!el) return;
-
+    function swipeGesture(el: HTMLDivElement) {
         const onMove = (e: PointerEvent) => {
             if (pointerStart === null) return;
             const dy = e.clientY - pointerStart;
@@ -560,18 +419,19 @@
             if (pointerMaxDelta > 5) suppressClick = true;
             const sign = dy > 0 ? 1 : -1;
             const clamped = Math.min(Math.abs(dy), SWIPE_MAX) * sign;
-            el.style.transform = `translateY(${clamped}px)`;
+            motion.moveForSwipe(el, clamped);
         };
 
         const onUp = (e: PointerEvent) => {
             if (pointerStart === null) return;
             const dy = e.clientY - pointerStart;
             pointerStart = null;
-            el.style.transform = '';
             suppressClick = pointerMaxDelta > 5;
             pointerMaxDelta = 0;
             if (Math.abs(dy) > SWIPE_DISMISS) {
                 onDismiss?.();
+            } else {
+                motion.resetSwipe(el);
             }
         };
 
@@ -580,7 +440,7 @@
             pointerMaxDelta = 0;
             pointerStartedOpen = null;
             suppressClick = false;
-            el.style.transform = '';
+            motion.resetSwipe(el);
         };
 
         const onLostCapture = () => {
@@ -598,24 +458,16 @@
         el.addEventListener('click', onCapturedClick);
 
         return () => {
+            motion.stopSwipe();
             el.removeEventListener('pointermove', onMove);
             el.removeEventListener('pointerup', onUp);
             el.removeEventListener('pointercancel', onCancel);
             el.removeEventListener('lostpointercapture', onLostCapture);
             el.removeEventListener('click', onCapturedClick);
         };
-    });
+    }
 
     /* ---------------------------------- Icons --------------------------------- */
-
-    const stateIcons: Record<SileoState, typeof Check> = {
-        success: Check,
-        loading: LoaderCircle,
-        error: X,
-        warning: CircleAlert,
-        info: LifeBuoy,
-        action: ArrowRight
-    };
 
     function isSnippet(val: unknown): val is Snippet {
         return typeof val === 'function';
@@ -627,7 +479,7 @@
         <div data-sileo-header-stack>
             {#key headerLayer.current.key}
                 <div
-                    bind:this={innerEl}
+                    {@attach measurements.measureTitle}
                     data-sileo-header-inner
                     data-layer="current"
                 >
@@ -640,8 +492,7 @@
                             {#if isSnippet(headerLayer.current.view.icon)}
                                 {@render headerLayer.current.view.icon()}
                             {:else}
-                                {@const IconComponent = stateIcons[headerLayer.current.view.toastState]}
-                                <IconComponent />
+                                <StateIcon state={headerLayer.current.view.toastState} />
                             {/if}
                         </div>
                     {/if}
@@ -670,8 +521,7 @@
                             {#if isSnippet(headerLayer.prev.view.icon)}
                                 {@render headerLayer.prev.view.icon()}
                             {:else}
-                                {@const PrevIconComponent = stateIcons[headerLayer.prev.view.toastState]}
-                                <PrevIconComponent />
+                                <StateIcon state={headerLayer.prev.view.toastState} />
                             {/if}
                         </div>
                     {/if}
@@ -688,10 +538,13 @@
     {/snippet}
 
     <div
+        {@attach motion.attachToast}
+        {@attach swipeGesture}
+        {@attach measurements.measureToast}
         bind:this={buttonEl}
         role="group"
         data-sileo-toast
-        data-ready={ready}
+        data-ready={motion.ready}
         data-expanded={open}
         data-exiting={exiting}
         data-edge={expand}
@@ -701,7 +554,6 @@
         style={rootStyle}
         onmouseenter={handleEnter}
         onmouseleave={handleLeave}
-        ontransitionend={handleTransitionEnd}
         onpointerdown={handlePointerDown}
     >
         <div
@@ -710,9 +562,9 @@
         >
             <svg
                 data-sileo-svg
-                width={canvasWidth}
-                height={svgHeight}
-                viewBox={`0 0 ${canvasWidth} ${svgHeight}`}
+                width={measurements.canvasWidth}
+                height={geometry.canvasHeight}
+                viewBox={`0 0 ${measurements.canvasWidth} ${geometry.canvasHeight}`}
                 aria-hidden="true"
             >
                 <defs>
@@ -744,17 +596,21 @@
                 </defs>
                 <g filter={`url(#${filterId})`}>
                     <rect
+                        bind:this={pillEl}
                         data-sileo-pill
-                        x={pillX}
+                        x={geometry.pillX}
+                        width={geometry.pillWidth}
+                        height={geometry.pillHeight}
                         rx={resolvedRoundness}
                         ry={resolvedRoundness}
                         fill={view.fill}
                     />
                     <rect
+                        bind:this={bodyEl}
                         data-sileo-body
-                        y={baseHeight}
-                        width={canvasWidth}
-                        height={expandedContent}
+                        y={measurements.baseHeight}
+                        width={measurements.canvasWidth}
+                        height={geometry.bodyHeight}
                         rx={resolvedRoundness}
                         ry={resolvedRoundness}
                         fill={view.fill}
@@ -765,6 +621,7 @@
 
         {#if hasDesc && !isLoading}
             <button
+                {@attach measurements.measureHeader}
                 bind:this={headerEl}
                 type="button"
                 tabindex={view.button ? 0 : -1}
@@ -782,6 +639,7 @@
             </button>
         {:else}
             <div
+                {@attach measurements.measureHeader}
                 bind:this={headerEl}
                 data-sileo-header
                 data-edge={expand}
@@ -792,13 +650,14 @@
 
         {#if hasDesc}
             <div
+                bind:this={contentRootEl}
                 id={contentId}
                 data-sileo-content
                 data-edge={expand}
                 data-visible={open}
             >
                 <div
-                    bind:this={contentEl}
+                    {@attach measurements.measureContent}
                     data-sileo-description
                     class={view.classes?.description}
                 >

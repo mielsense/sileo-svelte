@@ -2,7 +2,7 @@
     "sections": [
         {
             "title": "Getting started",
-            "pages": ["index", "installation"]
+            "pages": ["index", "installation", "changelog"]
         },
         {
             "title": "Guides",

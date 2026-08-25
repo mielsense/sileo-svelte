@@ -55,7 +55,7 @@ export const timeoutKey = (t: SileoItem) => `${t.id}:${t.instanceId}`;
 
 /* ------------------------------- Toast API -------------------------------- */
 
-const dismissToast = (id: string) => {
+export const dismissToast = (id: string) => {
     const item = store.toasts.find((t) => t.id === id);
     if (!item || item.exiting) return;
 

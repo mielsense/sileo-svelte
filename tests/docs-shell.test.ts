@@ -54,6 +54,7 @@ describe('documentation shell', () => {
         expect(orderedPages.map((page) => page.slug)).toEqual([
             'index',
             'installation',
+            'changelog',
             'creating-toasts',
             'async-flows',
             'customization',

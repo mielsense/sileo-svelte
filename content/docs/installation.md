@@ -6,7 +6,7 @@ label: Installation
 
 ## Install the package
 
-Use the package manager already used by your project.
+Use the package manager already used by your project. Sileo Svelte requires Svelte 5.56 or newer. The Motion runtime is installed with the package.
 
 ```bash
 bun add sileo-svelte
