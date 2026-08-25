@@ -304,7 +304,6 @@
             `--_h:${geometry.rootHeight}px;` +
             `--_pill-x:${geometry.pillX}px;` +
             `--_pill-width:${geometry.pillWidth}px;` +
-            `--_collapsed-pill-scale:${geometry.collapsedPillScale};` +
             (skinVars ? `;${skinVars}` : '')
     );
 

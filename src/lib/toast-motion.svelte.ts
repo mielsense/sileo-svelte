@@ -30,7 +30,6 @@ export function createToastMotion(options: ToastMotionOptions) {
     let ready = $state(false);
     let duration = $state(0.6);
     let renderedGeometry: ToastGeometry | null = null;
-    let renderedOpen = false;
 
     const transition = (reduced: boolean, delay = 0) => springTransition(reduced, delay, duration);
     const entryMargin = () => `${-(options.baseHeight() + 12)}px`;
@@ -95,10 +94,8 @@ export function createToastMotion(options: ToastMotionOptions) {
         const targetOpen = options.open();
         const reduced = prefersReducedMotion.current;
         const previous = renderedGeometry ?? target;
-        const previousOpen = renderedGeometry ? renderedOpen : targetOpen;
 
         renderedGeometry = target;
-        renderedOpen = targetOpen;
         if (!pill || !body || !ready) return;
 
         controls.start('pill', () =>
@@ -107,10 +104,6 @@ export function createToastMotion(options: ToastMotionOptions) {
                 {
                     attrX: [previous.pillX, target.pillX],
                     height: [previous.pillHeight, target.pillHeight],
-                    scaleY: [
-                        previousOpen ? 1 : previous.collapsedPillScale,
-                        targetOpen ? 1 : target.collapsedPillScale
-                    ],
                     width: [previous.pillWidth, target.pillWidth]
                 },
                 transition(reduced, targetOpen ? duration * 0.08 : 0)
@@ -121,8 +114,7 @@ export function createToastMotion(options: ToastMotionOptions) {
                 body,
                 {
                     height: [previous.bodyHeight, target.bodyHeight],
-                    opacity: targetOpen ? 1 : 0,
-                    scaleY: targetOpen ? 1 : 0
+                    opacity: targetOpen ? 1 : 0
                 },
                 transition(reduced)
             )

@@ -100,27 +100,11 @@
 
 /* --------------------------------- Shapes --------------------------------- */
 
-[data-sileo-pill],
 [data-sileo-body] {
-    transform-box: fill-box;
-    transform-origin: 50% 0%;
-}
-
-[data-sileo-pill] {
-    transform: scaleY(var(--_collapsed-pill-scale, 1));
-}
-
-[data-sileo-body] {
-    transform: scaleY(0);
     opacity: 0;
 }
 
-[data-sileo-toast][data-expanded='true'] [data-sileo-pill] {
-    transform: scaleY(1);
-}
-
 [data-sileo-toast][data-expanded='true'] [data-sileo-body] {
-    transform: scaleY(1);
     opacity: 1;
 }
 

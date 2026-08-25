@@ -14,7 +14,6 @@ export interface ToastGeometryInput {
 export interface ToastGeometry {
     bodyHeight: number;
     canvasHeight: number;
-    collapsedPillScale: number;
     pillHeight: number;
     pillWidth: number;
     pillX: number;
@@ -29,7 +28,7 @@ export function measuredExpandedHeight(baseHeight: number, contentHeight: number
 }
 
 export function resolveToastGeometry(input: ToastGeometryInput): ToastGeometry {
-    const pillHeight = input.baseHeight + input.blur * 3;
+    const pillHeight = input.open ? input.baseHeight + input.blur * 3 : input.baseHeight;
     const pillWidth = Math.min(Math.max(input.pillWidth || input.baseHeight, input.baseHeight), input.canvasWidth);
     const pillX =
         input.alignment === 'right'
@@ -41,9 +40,8 @@ export function resolveToastGeometry(input: ToastGeometryInput): ToastGeometry {
     const canvasHeight = input.hasDescription ? Math.max(input.expandedHeight, minimum) : input.baseHeight;
 
     return {
-        bodyHeight: Math.max(0, input.expandedHeight - input.baseHeight),
+        bodyHeight: input.open ? Math.max(0, input.expandedHeight - input.baseHeight) : 0,
         canvasHeight,
-        collapsedPillScale: input.baseHeight / pillHeight,
         pillHeight,
         pillWidth,
         pillX,

@@ -77,11 +77,27 @@ describe('toast geometry', () => {
         expect(geometry).toEqual({
             bodyHeight: 100,
             canvasHeight: 140,
-            collapsedPillScale: 40 / 67,
             pillHeight: 67,
             pillWidth: 148,
             pillX: 202,
             rootHeight: 140
         });
+    });
+
+    test('uses real collapsed dimensions instead of transform scaling', () => {
+        const geometry = resolveToastGeometry({
+            alignment: 'right',
+            baseHeight: 40,
+            blur: 9,
+            canvasWidth: 350,
+            expandedHeight: 140,
+            hasDescription: true,
+            open: false,
+            pillWidth: 148
+        });
+
+        expect(geometry.pillHeight).toBe(40);
+        expect(geometry.bodyHeight).toBe(0);
+        expect(geometry.rootHeight).toBe(40);
     });
 });
