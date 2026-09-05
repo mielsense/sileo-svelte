@@ -2,7 +2,7 @@
 
 Physics-based, gooey toast notifications for Svelte 5.56 and newer.
 
-[Scenario lab](#scenario-lab) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
+[Website](https://sileo.miel.my) · [Scenario lab](#scenario-lab) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
 
 An unofficial Svelte 5 port of [Sileo](https://github.com/hiaaryan/sileo) by
 [Aaryan](https://github.com/hiaaryan).
@@ -318,8 +318,7 @@ bun install
 bun run dev
 ```
 
-The deployed documentation URL is intentionally not listed until the project
-has a confirmed hosting target.
+Visit the deployed documentation and scenario lab at [sileo.miel.my](https://sileo.miel.my).
 
 ## Credits
 
