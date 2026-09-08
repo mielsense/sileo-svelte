@@ -16,6 +16,12 @@ npx skills add mielsense/sileo-svelte --skill sileo-svelte
 
 You can [read the skill](/skill.md) before installing it. The repository and this site serve the same source file.
 
+## Version compatibility
+
+The skill follows the 0.2 API, including explicit IDs, removing actions with `button: null`, and frosted glass backgrounds. Version 0.2.0 is prepared for release; check the [changelog](/docs/changelog) and your installed version before using these options.
+
+The skill ships in the npm package under `skills/sileo-svelte` as well as in this repository. The site serves that same file, so its instructions stay together with the library changes.
+
 ## Use it
 
 Name the skill and describe what should happen in your application.

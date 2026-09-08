@@ -50,6 +50,8 @@ Call `sileo` from any client-side component.
 - [Async flows](/docs/async-flows): follow an upload or save from loading to completion.
 - [Customization](/docs/customization): change colors, add frosted glass, or render Svelte snippets.
 
+Working with a coding agent? Install the [Sileo Svelte skill](/docs/agent-skill) for the same API and styling guidance.
+
 ## Requirements
 
 Sileo Svelte requires Svelte 5.56 or newer. Motion is included as a runtime dependency; the package has no utility CSS dependency. Import its stylesheet once, then use normal Svelte components and TypeScript.

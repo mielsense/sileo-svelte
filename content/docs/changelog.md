@@ -22,7 +22,9 @@ Release candidate. Publication is pending.
 - `classes.toast` and `classes.background` for styling the outer toast and its background.
 - Explicit toast IDs in the typed creation API and `button: null` to remove an action during an update.
 - A configurable playground with real stacking, expiry, updates, and matching example code.
-- A repository-owned agent skill with installable and HTTP-readable instructions.
+- A repository-owned agent skill covering the public 0.2 API, application defaults, promises, snippets, styling, and accessibility. It ships in the npm package and has its own docs page and HTTP discovery endpoints.
+- Installation blocks with npm, pnpm, Bun, and Yarn choices that remember the selected package manager.
+- Icon tooltips for pointer and keyboard users, with reduced-motion support.
 
 ### Changed
 
@@ -32,7 +34,9 @@ Release candidate. Publication is pending.
 - Swipe gestures use progressive resistance, velocity-aware dismissal, and a spring return.
 - Geometry calculations now live in a small typed module instead of being mixed into rendering and gesture code.
 - `--sileo-duration` controls visual timing and lifecycle completion instead of competing with fixed removal timers.
-- Simplified the docs and playground. Preview and code share one panel, with fewer controls and a manual homepage demo.
+- Reworked the docs, homepage, and playground around shared navigation styles and a bordered layout. Preview and code share one toolbar with copy and clear actions.
+- Added a fixed site footer for GitHub, theme, and `llms.txt` links; moved page navigation to the header's right edge.
+- Added subtle disclosure, tooltip, copy-feedback, and navigation animations that respect reduced motion.
 - Tagged releases now run CI, test the npm tarball in a separate consumer, and publish that same artifact with provenance.
 
 ### Fixed
@@ -46,8 +50,9 @@ Release candidate. Publication is pending.
 - An explicit update can interrupt exit without an old completion removing the updated toast.
 - Closing during a pending content update completes the close.
 - Collapsed content stays measurable without forcing layout inside a skipped subtree.
-- Updated two development dependencies with reported security advisories.
-
+- Updated dependencies with reported security advisories.
+- Raw Markdown links now bypass client-side routing, preventing false 404 pages.
+- Centered the error page and matched its recovery button sizes.
 - Reduced-motion preferences now skip transform-heavy entrances, shape motion, header blur, and loader rotation.
 - Playground examples no longer leak notifications into the documentation route.
 - Toast geometry stays aligned after runtime width and height changes.
@@ -60,10 +65,9 @@ Release candidate. Publication is pending.
 
 ### Upgrade
 
-Once 0.2.0 is published, update Svelte and install it:
+Once 0.2.0 is published, update Svelte to 5.56 or newer with your project's package manager, then install the library:
 
 ```bash
-bun add -D svelte@^5.56.0
 npm install sileo-svelte@^0.2.0
 ```
 

@@ -13,12 +13,14 @@ Inspect the consumer's installed package version and Svelte peer requirement bef
 
 Read the page relevant to the task:
 
-- Installation: https://sileo-svelte.vercel.app/docs/installation.md
-- Public API: https://sileo-svelte.vercel.app/docs/api.md
-- Promise flows: https://sileo-svelte.vercel.app/docs/async-flows.md
-- Styles and glass: https://sileo-svelte.vercel.app/docs/customization.md
-- Toaster: https://sileo-svelte.vercel.app/docs/toaster.md
-- Documentation index: https://sileo-svelte.vercel.app/llms.txt
+- Installation: https://sileo.miel.my/docs/installation.md
+- Public API: https://sileo.miel.my/docs/api.md
+- Promise flows: https://sileo.miel.my/docs/async-flows.md
+- Styles and glass: https://sileo.miel.my/docs/customization.md
+- Toaster: https://sileo.miel.my/docs/toaster.md
+- Documentation index: https://sileo.miel.my/llms.txt
+
+Use the [playground](https://sileo.miel.my/playground) to check appearance and interactions, and read the [changelog](https://sileo.miel.my/docs/changelog.md) before recommending an upgrade.
 
 Use the package's public exports. Do not import its internal store, `Sileo.svelte`, or motion helpers into a consumer app.
 
@@ -36,6 +38,8 @@ Install `sileo-svelte` using the project's package manager. Import `sileo-svelte
 {@render children()}
 <Toaster position="top-right" />
 ```
+
+Use `Toaster.options` for application defaults, `sileo.with(defaults)` for defaults shared by a group of calls, and options on a single call for its overrides. `position` accepts `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, or `bottom-right`. `offset` accepts a number, a CSS length, or an object with `top`, `right`, `bottom`, and `left` values. Leave room for fixed application headers or footers.
 
 The API shares a browser store. Multiple Toasters render duplicate notifications and compete over defaults. `sileo.with(defaults)` creates an API with defaults, not an isolated store or another viewport owner.
 
@@ -77,7 +81,7 @@ Promise completion cannot revive a toast that the user closed, dismissed, or rep
 
 ## Customize without breaking geometry
 
-Start with `fill`, `roundness`, the typed `styles` slots, or `classes`. Apply custom classes in global CSS because Toaster renders outside the component that called the helper. Set width with `--sileo-width`. Avoid overriding the root's animated height, opacity, or transform.
+Start with `fill`, `roundness`, the typed `styles` slots, or `classes`. Apply custom classes in global CSS because Toaster renders outside the component that called the helper. Style slots include `titleColor`, `descriptionColor`, `badgeColor`, `badgeBackground`, `buttonColor`, `buttonBackground`, `buttonHoverBackground`, and `backdropFilter`. Class slots include `toast`, `background`, `title`, `description`, `badge`, and `button`. Set width with `--sileo-width`. Avoid overriding the root's animated height, opacity, or transform.
 
 For frosted glass, pair a translucent fill with `styles.backdropFilter`:
 
