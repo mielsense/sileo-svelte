@@ -31,3 +31,7 @@ plans
 /.playwright-cli
 /output
 /package-artifact
+
+# Local agent configuration
+/.agents/
+/.claude/
