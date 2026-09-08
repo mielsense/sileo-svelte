@@ -22,7 +22,7 @@ const result = await sileo.promise(uploadBuild(), {
 });
 ```
 
-The returned promise preserves the original result type. You can keep using `result` after the notification finishes.
+The returned promise preserves the original result type. A rejected promise still rejects, so handle errors in your calling code. If the toast was closed, dismissed, cleared, or replaced, the result does not bring it back.
 
 ## Reuse a loading toast
 
@@ -51,7 +51,6 @@ The optional `action` mapping replaces the success state. Use it when the comple
 ```ts
 await sileo.promise(() => createReport(), {
     loading: { title: 'Building report' },
-    success: { title: 'Report ready' },
     error: { title: 'Report failed' },
     action: (report) => ({
         title: 'Report ready',

@@ -1,5 +1,7 @@
 <script lang="ts">
     import { tick } from 'svelte';
+    import { goto } from '$app/navigation';
+    import * as Select from '$docs/components/ui/select/index.js';
     import { resolve } from '$app/paths';
     import { page } from '$app/state';
     import { navigation, type TocItem } from '$docs/source.js';
@@ -63,6 +65,30 @@
         class="docs-left-rail"
         aria-label="Documentation navigation"
     >
+        <div class="mobile-doc-nav">
+            <Select.Root
+                items={navigation.flatMap((section) =>
+                    section.pages.map((item) => ({ value: item.path, label: item.metadata.label }))
+                )}
+                value={currentPath}
+                onValueChange={(value) => {
+                    if (value && value !== currentPath) void goto(docHref(value));
+                }}
+                aria-label="Documentation"
+            >
+                <Select.Trigger><Select.Value /></Select.Trigger>
+                <Select.Popup alignItemWithTrigger={false}>
+                    {#each navigation as section (section.title)}
+                        <Select.Group
+                            ><Select.GroupLabel>{section.title}</Select.GroupLabel
+                            >{#each section.pages as item (item.slug)}<Select.Item value={item.path}
+                                    >{item.metadata.label}</Select.Item
+                                >{/each}</Select.Group
+                        >
+                    {/each}
+                </Select.Popup>
+            </Select.Root>
+        </div>
         <div class="left-rail-sticky">
             <nav>
                 <!-- eslint-disable svelte/no-navigation-without-resolve -->

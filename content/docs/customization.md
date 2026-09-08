@@ -23,7 +23,7 @@ Supported positions are `top-left`, `top-center`, `top-right`, `bottom-left`, `b
 
 ## Color and shape
 
-Use `fill` for the toast background and `roundness` for its corner model.
+Use `fill` for the toast background and `roundness` to change the corners.
 
 ```ts
 sileo.action({
@@ -38,6 +38,49 @@ sileo.action({
 ```
 
 Keep enough contrast between the fill, text, badge, and button colors. Test both collapsed and expanded states.
+
+## Frosted glass
+
+Use a translucent `fill` with `styles.backdropFilter`. Sileo blurs the page behind the toast and clips the result to its animated shape. The title, icon, and description stay sharp.
+
+```ts
+sileo.success({
+    title: 'Saved',
+    description: 'Your changes are ready.',
+    fill: 'rgba(24, 24, 27, 0.55)',
+    styles: {
+        backdropFilter: 'blur(16px) saturate(1.4)',
+        titleColor: '#ffffff',
+        descriptionColor: '#f4f4f5'
+    }
+});
+```
+
+An opaque fill hides the blur. A flat background also gives the filter little to blur. Test your toast over the images, text, and colors in your app, then check that the text remains readable.
+
+The browser must support CSS `backdrop-filter` and SVG masks. Without backdrop filtering, the translucent fill still appears. Ancestors with `filter`, masks, or opacity below `1` can limit which content the browser blurs. Mount `Toaster` near the application root, outside those containers.
+
+## Styling the whole toast
+
+`classes.toast` targets the outer toast. `classes.background` targets the SVG background, or the masked HTML background when `backdropFilter` is set. Import your styles after `sileo-svelte/styles.css`.
+
+```ts
+sileo.info({
+    title: 'New comment',
+    classes: { toast: 'comment-toast' }
+});
+```
+
+```css
+/* Use global CSS. Toaster renders outside the component that calls sileo. */
+.comment-toast {
+    --sileo-width: 400px;
+    --sileo-title-color: #e0e7ff;
+    --sileo-description-color: #f5f3ff;
+}
+```
+
+Sileo animates the toast's height, opacity, and transform. Keep those properties available to the animation. Set width with `--sileo-width` so measurements and the background stay aligned.
 
 ## Motion timing
 
@@ -111,4 +154,4 @@ Sileo accepts Svelte snippets for `description` and `icon`.
 <button onclick={showRelease}>Show release</button>
 ```
 
-Keep interactive controls in the toast button. Description snippets should explain the state, not contain another focus path.
+Use `button` for a single action. Description snippets can also contain links, buttons, and inputs. The toast header enters the tab order when a description is a snippet. Focus opens the content and pauses expiry. Escape returns focus to the header and collapses the toast.

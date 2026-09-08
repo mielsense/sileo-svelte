@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { createRawSnippet, tick } from 'svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import Layout from '../src/routes/+layout.svelte';
@@ -54,6 +54,7 @@ describe('documentation shell', () => {
         expect(orderedPages.map((page) => page.slug)).toEqual([
             'index',
             'installation',
+            'agent-skill',
             'changelog',
             'creating-toasts',
             'async-flows',
@@ -62,7 +63,7 @@ describe('documentation shell', () => {
             'toaster'
         ]);
         const overview = getDoc('index')!;
-        expect(overview.raw).toContain('bun add sileo-svelte');
+        expect(overview.raw).toContain('npm install sileo-svelte');
         expect(overview.toc.map((item) => item.id)).toContain('start-here');
     });
 
@@ -74,9 +75,9 @@ describe('documentation shell', () => {
         await tick();
 
         expect(getByRole('heading', { name: 'Sileo Svelte' })).toBeTruthy();
-        expect(container.querySelectorAll('.code-copy-button').length).toBeGreaterThanOrEqual(3);
+        await waitFor(() => expect(container.querySelectorAll('.code-copy-button').length).toBeGreaterThanOrEqual(3));
         expect(container.querySelectorAll('.shiki span[style]').length).toBeGreaterThan(0);
-        expect(container.querySelector('pre[data-language="bash"]')).toBeTruthy();
+        expect(getByRole('group', { name: 'Package manager' })).toBeTruthy();
         await fireEvent.click(getByRole('button', { name: 'Copy Markdown' }));
         expect(writeText).toHaveBeenCalledWith(data.raw);
     });

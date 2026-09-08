@@ -9,10 +9,6 @@ label: Installation
 Use the package manager already used by your project. Sileo Svelte requires Svelte 5.56 or newer. The Motion runtime is installed with the package.
 
 ```bash
-bun add sileo-svelte
-```
-
-```bash
 npm install sileo-svelte
 ```
 
@@ -40,7 +36,7 @@ Import the stylesheet once. In SvelteKit, the root layout is a good place for bo
 </Toaster>
 ```
 
-Mount one toaster. Multiple instances share the same store and make placement harder to reason about.
+Mount one toaster. Multiple instances share the store and render duplicate notifications.
 
 ## Set application defaults
 
@@ -62,13 +58,17 @@ The `options` prop applies defaults to every toast. Individual calls can overrid
 
 ## Server rendering
 
-Mount the component in a normal Svelte layout. Call `sileo` in browser interactions such as button handlers, form results, or client-side tasks. Do not create notifications during server rendering.
+Mount the component in a normal Svelte layout. Call `sileo` in browser interactions such as button handlers, form results, or client-side tasks. Server-side notification calls do not enqueue toasts or transfer messages to the browser.
 
 ## Confirm the setup
 
 Add a temporary button and click it in the browser.
 
 ```svelte
+<script>
+    import { sileo } from 'sileo-svelte';
+</script>
+
 <button onclick={() => sileo.info({ title: 'Toaster connected' })}> Test notification </button>
 ```
 

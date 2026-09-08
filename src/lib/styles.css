@@ -261,7 +261,7 @@
 }
 
 [data-sileo-content]:not([data-visible='true']) {
-    content-visibility: hidden;
+    visibility: hidden;
 }
 
 [data-sileo-content][data-edge='top'] {
@@ -288,7 +288,6 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     contain: layout style;
-    content-visibility: auto;
 }
 
 [data-sileo-toast][data-position='center'] [data-sileo-description] {
@@ -409,6 +408,19 @@
 
 @media (prefers-reduced-motion: no-preference) {
     [data-sileo-toast][data-ready='true'] {
-        will-change: transform, opacity, height;
+        will-change: transform, height;
     }
+}
+
+/* The alpha mask reuses the animated SVG shapes, so the backdrop follows the morph. */
+[data-sileo-svg][data-backdrop='true'] {
+    opacity: 0;
+}
+
+[data-sileo-background] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
 }

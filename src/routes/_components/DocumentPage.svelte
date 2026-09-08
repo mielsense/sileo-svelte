@@ -1,5 +1,11 @@
 <script lang="ts">
-    import { tick } from 'svelte';
+    import { Button } from '$docs/components/ui/button/index.js';
+    import { mount, tick, unmount } from 'svelte';
+    import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon';
+    import ArrowUpRight01Icon from '@hugeicons/core-free-icons/ArrowUpRight01Icon';
+    import HugeiconsIcon from '$docs/hugeicons-icon.svelte';
+    import CodeCopyButton from './CodeCopyButton.svelte';
+    import { enhanceInstallCommand } from './enhance-install-command.js';
     import { resolve } from '$app/paths';
     import { getDoc, headingId } from '$docs/source.js';
     import type { DocPageData } from '$docs/types.js';
@@ -44,6 +50,12 @@
         for (const block of article.querySelectorAll<HTMLPreElement>('pre')) {
             if (block.parentElement?.classList.contains('code-frame')) continue;
 
+            const cleanupInstallCommand = enhanceInstallCommand(block);
+            if (cleanupInstallCommand) {
+                cleanups.push(cleanupInstallCommand);
+                continue;
+            }
+
             const frame = document.createElement('div');
             frame.className = 'code-frame';
             block.parentNode?.insertBefore(frame, block);
@@ -56,21 +68,14 @@
             toolbar.className = 'code-toolbar';
             const label = document.createElement('span');
             label.textContent = language;
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'code-copy-button';
-            button.textContent = 'Copy';
-            button.setAttribute('aria-label', `Copy ${language} code`);
-            toolbar.append(label, button);
+            const actions = document.createElement('div');
+            toolbar.append(label, actions);
             frame.insertBefore(toolbar, block);
-
-            const handleCopy = async () => {
-                const copied = await copyText(code?.textContent ?? '');
-                button.textContent = copied ? 'Copied' : 'Copy failed';
-                window.setTimeout(() => (button.textContent = 'Copy'), 1600);
-            };
-            button.addEventListener('click', handleCopy);
-            cleanups.push(() => button.removeEventListener('click', handleCopy));
+            const copyButton = mount(CodeCopyButton, {
+                target: actions,
+                props: { value: code?.textContent ?? '', language }
+            });
+            cleanups.push(() => void unmount(copyButton));
         }
 
         return () => cleanups.forEach((cleanup) => cleanup());
@@ -78,12 +83,16 @@
 
     $effect(() => {
         const slug = data.slug;
+        let cancelled = false;
         let cleanup = () => {};
         void tick().then(() => {
-            if (slug !== data.slug) return;
+            if (cancelled || slug !== data.slug) return;
             cleanup = enhanceArticle();
         });
-        return () => cleanup();
+        return () => {
+            cancelled = true;
+            cleanup();
+        };
     });
 </script>
 
@@ -111,32 +120,28 @@
         <h1>{data.metadata.title}</h1>
         <p>{data.metadata.description}</p>
         <div class="doc-actions">
-            <button
-                class="primary-action"
+            <Button
+                variant="outline"
                 type="button"
                 onclick={copyPage}
             >
-                <svg
-                    viewBox="0 0 16 16"
+                <HugeiconsIcon
+                    icon={Copy01Icon}
+                    size={16}
                     aria-hidden="true"
-                >
-                    <rect
-                        x="5.25"
-                        y="5.25"
-                        width="7"
-                        height="7"
-                        rx="1.5"
-                    />
-                    <path
-                        d="M3.75 10.75h-.5a1.5 1.5 0 0 1-1.5-1.5v-6a1.5 1.5 0 0 1 1.5-1.5h6a1.5 1.5 0 0 1 1.5 1.5v.5"
-                    />
-                </svg>
+                />
                 Copy Markdown
-            </button>
+            </Button>
             <!-- eslint-disable svelte/no-navigation-without-resolve -->
-            <a
-                class="secondary-action"
-                href={markdownHref}>View as Markdown</a
+            <Button
+                variant="outline"
+                href={markdownHref}
+                data-sveltekit-reload
+                >View as Markdown<HugeiconsIcon
+                    icon={ArrowUpRight01Icon}
+                    size={16}
+                    aria-hidden="true"
+                /></Button
             >
             <!-- eslint-enable svelte/no-navigation-without-resolve -->
         </div>

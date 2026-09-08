@@ -1,4 +1,5 @@
 <script lang="ts">
+    import IconButton from './_components/IconButton.svelte';
     import { resolve } from '$app/paths';
     import { page } from '$app/state';
     import { Toaster } from '$lib/index.js';
@@ -24,7 +25,7 @@
         aria-label="Sileo Svelte home"
     >
         <span>Sileo</span>
-        <span class="svelte-badge shadow-svelte">Svelte</span>
+        <span class="svelte-badge">Svelte</span>
     </a>
 
     <nav
@@ -32,28 +33,27 @@
         aria-label="Primary navigation"
     >
         <a
-            class:shadow-elevated={onDocs}
             href={resolve('/docs')}
             aria-current={onDocs ? 'page' : undefined}>Docs</a
         >
         <a
-            class:shadow-elevated={onPlayground}
             href={resolve('/playground')}
             aria-current={onPlayground ? 'page' : undefined}>Playground</a
         >
     </nav>
+</header>
 
-    <div class="header-actions">
-        <a
-            class="header-agent-link"
-            href={resolve('/llms.txt')}>llms.txt</a
-        >
-        <a
-            class="icon-button"
+{@render children()}
+<footer class="site-footer">
+    <div class="footer-actions">
+        <IconButton
+            class="github-link"
+            variant="outline"
+            size="icon"
             href="https://github.com/mielsense/sileo-svelte"
             rel="noreferrer"
             aria-label="View Sileo Svelte on GitHub"
-            title="GitHub"
+            tooltip="GitHub"
         >
             <svg
                 viewBox="0 0 20 20"
@@ -63,15 +63,17 @@
                     d="M10 2.25a7.75 7.75 0 0 0-2.45 15.1c.39.07.53-.17.53-.38v-1.5c-2.17.47-2.63-.92-2.63-.92-.35-.9-.87-1.14-.87-1.14-.71-.49.05-.48.05-.48.79.05 1.2.81 1.2.81.7 1.2 1.84.85 2.29.65.07-.51.27-.85.5-1.05-1.73-.2-3.55-.87-3.55-3.83 0-.85.3-1.54.8-2.08-.08-.2-.35-.99.08-2.05 0 0 .65-.21 2.13.8a7.38 7.38 0 0 1 3.88 0c1.48-1.01 2.13-.8 2.13-.8.43 1.06.16 1.85.08 2.05.5.54.8 1.23.8 2.08 0 2.97-1.82 3.62-3.55 3.82.28.24.53.72.53 1.45v2.15c0 .21.14.46.54.38A7.75 7.75 0 0 0 10 2.25Z"
                 />
             </svg>
-        </a>
+        </IconButton>
         <ThemeToggle />
     </div>
-</header>
-
-{@render children()}
+    <a
+        class="footer-agent-link"
+        href={resolve('/llms.txt')}>llms.txt</a
+    >
+</footer>
 {#if onDocs}
     <Toaster
         position="bottom-right"
-        offset={18}
+        offset={82}
     />
 {/if}

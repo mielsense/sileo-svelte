@@ -15,6 +15,11 @@ export const GET: RequestHandler = ({ url }) => {
             (page) => `- [${page.metadata.title}](${url.origin}${page.path}.md): ${page.metadata.description}`
         ),
         '',
+        '## Agent skill',
+        '',
+        `- [Sileo Svelte skill](${url.origin}/skill.md)`,
+        `- [Skill discovery](${url.origin}/.well-known/agent-skills/index.json)`,
+        '',
         '## Full reference',
         '',
         `- [Complete documentation](${url.origin}/llms-full.txt)`,

@@ -21,9 +21,7 @@ export interface ScenarioCompletion {
 export interface Scenario {
     id: string;
     label: string;
-    eyebrow: string;
     outcome: string;
-    parameters: string[];
     source: (position: SileoPosition) => string;
     initial: (context: ScenarioContext) => ScenarioToast;
     completion?: ScenarioCompletion;
@@ -94,7 +92,7 @@ const scopedInitial = (position: SileoPosition): ScenarioToast => ({
 const stylesInitial = (position: SileoPosition): ScenarioToast => ({
     state: 'action',
     title: 'Custom surface',
-    description: 'Typed styles stay with this toast.',
+    description: 'A different background, corners, and button.',
     position,
     fill: '#1f1f1f',
     roundness: 8,
@@ -113,9 +111,7 @@ export const scenarios: Scenario[] = [
     {
         id: 'core',
         label: 'Core states',
-        eyebrow: 'State helpers',
-        outcome: 'Create a semantic toast with a title, description, and the currently selected viewport.',
-        parameters: ['state: success', 'duration: 6000ms', 'autopilot: true'],
+        outcome: 'Show a success message with a title and description.',
         source: (position) =>
             scriptExample(
                 position,
@@ -133,9 +129,7 @@ export const scenarios: Scenario[] = [
     {
         id: 'promise',
         label: 'Async promise',
-        eyebrow: 'One continuous toast',
-        outcome: 'Keep one toast id while an asynchronous task moves from loading to success.',
-        parameters: ['loading: persistent', 'result: deterministic', 'position: preserved'],
+        outcome: 'Update one toast when an upload finishes.',
         source: (position) =>
             scriptExample(
                 position,
@@ -190,9 +184,7 @@ function run() {
     {
         id: 'action',
         label: 'Action and retry',
-        eyebrow: 'Persistent interaction',
-        outcome: 'Give the reader time to act, then reuse the same toast for a deterministic retry.',
-        parameters: ['state: action', 'duration: null', 'id: reused'],
+        outcome: 'Retry a failed payment from the notification.',
         source: (position) =>
             scriptExample(
                 position,
@@ -237,9 +229,7 @@ function run() {
     {
         id: 'scoped',
         label: 'Scoped defaults',
-        eyebrow: 'Reusable configuration',
-        outcome: 'Create a local API with shared defaults while the selected viewport still stays explicit.',
-        parameters: ['duration: 4000ms', 'fill: #181818', 'scope: billing'],
+        outcome: 'Share a duration and background color across related notifications.',
         source: (position) =>
             scriptExample(
                 position,
@@ -272,16 +262,14 @@ function run() {
     {
         id: 'styles',
         label: 'Custom styles',
-        eyebrow: 'Per toast variables',
-        outcome: 'Set typed colors and roundness on one toast. The package does not require a utility CSS framework.',
-        parameters: ['roundness: 8', 'fill: #1f1f1f', 'button style: local'],
+        outcome: 'Change the background, corners, and button colors.',
         source: (position) =>
             scriptExample(
                 position,
                 `function run() {
     sileo.action({
         title: 'Custom surface',
-        description: 'Typed styles stay with this toast.',
+        description: 'A different background, corners, and button.',
         position,
         fill: '#1f1f1f',
         roundness: 8,
@@ -302,9 +290,7 @@ function run() {
     {
         id: 'snippets',
         label: 'Rich snippets',
-        eyebrow: 'Native Svelte content',
-        outcome: 'Pass Svelte snippets to the description and icon fields for structured notification content.',
-        parameters: ['description: Snippet', 'icon: Snippet', 'state: info'],
+        outcome: 'Use Svelte snippets for the description and icon.',
         source: (position) => `<script lang="ts">
     import { sileo } from 'sileo-svelte';
 

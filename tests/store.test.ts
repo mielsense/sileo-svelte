@@ -518,4 +518,54 @@ describe('sileo store', () => {
 
         expect(store.toasts[0]).toEqual(expect.objectContaining({ title: 'Second complete', state: 'success' }));
     });
+    test('dismiss interrupts an unmounted close without leaving a toast behind', () => {
+        const id = sileo.show('Close then dismiss');
+        sileo.close(id);
+        sileo.dismiss(id);
+        vi.runAllTimers();
+        expect(store.toasts).toHaveLength(0);
+    });
+
+    test.each(['close', 'dismiss'] as const)('promise completion does not revive a toast after %s', async (method) => {
+        const task = deferred<string>();
+        const returned = sileo.promise(task.promise, {
+            id: 'dismissed-task',
+            loading: { title: 'Working' },
+            success: { title: 'Complete' },
+            error: { title: 'Failed' }
+        });
+        sileo[method]('dismissed-task');
+        task.resolve('done');
+        await returned;
+        expect(store.toasts[0].title).toBe('Working');
+        vi.runAllTimers();
+        expect(store.toasts).toHaveLength(0);
+    });
+
+    test('preserves scoped position defaults for promise notifications', async () => {
+        const scoped = sileo.with({ position: 'bottom-left' });
+        await scoped.promise(Promise.resolve('done'), {
+            loading: { title: 'Working' },
+            success: { title: 'Complete' },
+            error: { title: 'Failed' }
+        });
+        expect(store.toasts[0].position).toBe('bottom-left');
+    });
+
+    test('server calls do not retain notification data across requests', async () => {
+        vi.stubGlobal('window', undefined);
+        try {
+            expect(sileo.success('Private request data')).toEqual(expect.any(String));
+            await expect(
+                sileo.promise(Promise.resolve('done'), {
+                    loading: { title: 'Working' },
+                    success: { title: 'Complete' },
+                    error: { title: 'Failed' }
+                })
+            ).resolves.toBe('done');
+            expect(store.toasts).toHaveLength(0);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
 });

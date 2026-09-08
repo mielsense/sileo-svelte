@@ -16,7 +16,7 @@ sileo.action(input, description?)
 sileo.loading(input, description?)
 ```
 
-Each method accepts a title string or a `SileoOptions` object and returns the new toast id.
+Each method accepts a title string or a `SileoOptions` object and returns the toast id. Pass `id` to replace an existing notification with that name.
 
 ## Lifecycle methods
 
@@ -27,7 +27,7 @@ sileo.close(id)
 sileo.clear(position?)
 ```
 
-`update` accepts every `SileoOptions` field plus an optional `state`. `clear` can target one of the six positions.
+`update` accepts `SileoOptions` fields plus an optional `state`. Its first argument identifies the toast; an `id` inside the options does not rename it. Omitted fields stay unchanged. Set `button: null` to remove an action. `clear` can target one of the six positions.
 
 ## Promise
 
@@ -61,19 +61,20 @@ The returned object has the same state, promise, update, dismiss, close, and cle
 
 ## SileoOptions
 
-| Field         | Type                | Purpose                                          |
-| ------------- | ------------------- | ------------------------------------------------ |
-| `title`       | `string`            | Primary notification text.                       |
-| `description` | `string \| Snippet` | Supporting text or structured Svelte content.    |
-| `position`    | `SileoPosition`     | Viewport placement for this toast.               |
-| `duration`    | `number \| null`    | Lifetime in milliseconds. `null` keeps it open.  |
-| `icon`        | `Snippet \| null`   | Custom icon content or no icon.                  |
-| `button`      | `SileoButton`       | One labeled action with the toast id callback.   |
-| `fill`        | `string`            | Toast background color.                          |
-| `roundness`   | `number`            | Corner roundness used by the toast shape.        |
-| `autopilot`   | `boolean \| object` | Automatic expand and collapse timing.            |
-| `classes`     | `SileoClasses`      | Class names for supported internal parts.        |
-| `styles`      | `SileoStyles`       | Typed color values for supported internal parts. |
+| Field         | Type                  | Purpose                                         |
+| ------------- | --------------------- | ----------------------------------------------- |
+| `id`          | `string`              | Stable identifier for replacing a toast.        |
+| `title`       | `string`              | Primary notification text.                      |
+| `description` | `string \| Snippet`   | Supporting text or structured Svelte content.   |
+| `position`    | `SileoPosition`       | Viewport placement for this toast.              |
+| `duration`    | `number \| null`      | Lifetime in milliseconds. `null` keeps it open. |
+| `icon`        | `Snippet \| null`     | Custom icon content or no icon.                 |
+| `button`      | `SileoButton \| null` | One labeled action, or `null` to remove it.     |
+| `fill`        | `string`              | Toast background color.                         |
+| `roundness`   | `number`              | Corner roundness used by the toast shape.       |
+| `autopilot`   | `boolean \| object`   | Automatic expand and collapse timing.           |
+| `classes`     | `SileoClasses`        | Class names for supported internal parts.       |
+| `styles`      | `SileoStyles`         | Typed colors and backdrop filtering.            |
 
 ## Exported types
 
@@ -91,3 +92,9 @@ import type {
     SileoStyles
 } from 'sileo-svelte';
 ```
+
+## Background styling
+
+Set `styles.backdropFilter` to a CSS backdrop filter such as `blur(16px) saturate(1.4)`. Combine it with a translucent `fill` to blur the content behind the animated shape. See [frosted glass](/docs/customization#frosted-glass) for an example and browser limitations.
+
+`classes.toast` applies to the outer toast. `classes.background` applies to the SVG background, or the masked HTML background when a backdrop filter is active. These are global class names, like the existing title and description classes.

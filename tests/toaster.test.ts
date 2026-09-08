@@ -88,6 +88,33 @@ describe('Toaster', () => {
         store.globalOptions = undefined;
     });
 
+    test('pauses expiry and autopilot collapse while an action has keyboard focus', async () => {
+        vi.useFakeTimers();
+        try {
+            const id = sileo.action({
+                title: 'Time-sensitive action',
+                description: 'Choose before continuing',
+                duration: 1000,
+                button: { title: 'Continue', onClick: vi.fn() }
+            });
+            const { container } = render(Toaster);
+            await tick();
+            const trigger = container.querySelector('[data-sileo-trigger]') as HTMLButtonElement;
+            trigger.focus();
+            await fireEvent.focusIn(trigger);
+            await vi.advanceTimersByTimeAsync(1500);
+            expect(store.toasts.find((item) => item.id === id)?.exiting).not.toBe(true);
+            expect(trigger.getAttribute('aria-expanded')).toBe('true');
+            trigger.blur();
+            await fireEvent.focusOut(trigger, { relatedTarget: document.body });
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(store.toasts.find((item) => item.id === id)?.exiting).toBe(true);
+        } finally {
+            cleanup();
+            vi.useRealTimers();
+        }
+    });
+
     test('renders a toast through Toaster', async () => {
         sileo.success('Saved');
         const { getByText } = render(Toaster);

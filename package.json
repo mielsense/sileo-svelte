@@ -1,6 +1,6 @@
 {
     "name": "sileo-svelte",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "packageManager": "bun@1.3.14",
     "description": "Physics-based gooey toast notifications for Svelte 5",
     "license": "MIT",
@@ -22,8 +22,13 @@
     "files": [
         "dist",
         "!dist/**/*.test.*",
-        "!dist/**/*.spec.*"
+        "!dist/**/*.spec.*",
+        "skills/sileo-svelte"
     ],
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
     "sideEffects": [
         "**/*.css"
     ],
@@ -43,7 +48,9 @@
     "devDependencies": {
         "@eslint/compat": "^2.1.0",
         "@eslint/js": "^9.39.5",
+        "@hugeicons/core-free-icons": "4.3.0",
         "@playwright/test": "^1.62.1",
+        "@shardsui/svelte": "0.1.0-beta.0",
         "@sveltejs/adapter-vercel": "^6.3.4",
         "@sveltejs/kit": "^2.70.3",
         "@sveltejs/package": "^2.5.8",
@@ -51,6 +58,7 @@
         "@tailwindcss/vite": "^4.3.3",
         "@testing-library/svelte": "^5.4.2",
         "@types/node": "^24.13.3",
+        "clsx": "^2.1.1",
         "eslint": "^9.39.5",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-svelte": "^3.23.0",
@@ -64,6 +72,7 @@
         "svelte": "^5.56.10",
         "svelte-check": "^4.7.6",
         "svelte-highlight": "^7.19.0",
+        "tailwind-merge": "^3.5.0",
         "tailwindcss": "^4.3.3",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.68.0",
@@ -91,6 +100,8 @@
         "motion": "^13.1.1"
     },
     "overrides": {
+        "@humanfs/node": "^0.16.8",
+        "postcss-selector-parser": "^7.1.3",
         "brace-expansion": "^1.1.17",
         "cookie": "^0.7.2",
         "flatted": "^3.4.0",

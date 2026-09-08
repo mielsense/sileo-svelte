@@ -13,49 +13,66 @@ describe('published package contract', () => {
         expect(packageJson.scripts['test:package']).toBe('vitest run tests/package.test.ts');
     });
 
-    it('installs the packed artifact and builds a Svelte consumer for the browser and SSR', () => {
-        expect(packageJson.exports['.']).toEqual({
-            types: './dist/index.d.ts',
-            svelte: './dist/index.js'
-        });
-        expect(packageJson.exports['./styles.css']).toBe('./dist/styles.css');
-        expect(existsSync(join(root, packageJson.exports['.'].types))).toBe(true);
-        expect(existsSync(join(root, packageJson.exports['.'].svelte))).toBe(true);
-        expect(existsSync(join(root, packageJson.exports['./styles.css']))).toBe(true);
+    it.each([packageJson.peerDependencies.svelte.replace('^', ''), packageJson.devDependencies.svelte])(
+        'builds the packed browser and SSR consumer with Svelte %s',
+        (svelteVersion: string) => {
+            expect(packageJson.exports['.']).toEqual({
+                types: './dist/index.d.ts',
+                svelte: './dist/index.js'
+            });
+            expect(packageJson.exports['./styles.css']).toBe('./dist/styles.css');
+            expect(existsSync(join(root, packageJson.exports['.'].types))).toBe(true);
+            expect(existsSync(join(root, packageJson.exports['.'].svelte))).toBe(true);
+            expect(existsSync(join(root, packageJson.exports['./styles.css']))).toBe(true);
 
-        const fixture = mkdtempSync(join(tmpdir(), 'sileo-svelte-consumer-'));
+            const fixture = mkdtempSync(join(tmpdir(), 'sileo-svelte-consumer-'));
 
-        try {
-            const packed = JSON.parse(
-                execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', fixture], {
-                    cwd: root,
-                    encoding: 'utf8',
-                    stdio: 'pipe'
-                })
-            )[0] as { filename: string; files: Array<{ path: string }> };
-            const archive = join(fixture, packed.filename);
+            try {
+                const packed = JSON.parse(
+                    execFileSync('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', fixture], {
+                        cwd: root,
+                        encoding: 'utf8',
+                        stdio: 'pipe'
+                    })
+                )[0] as { filename: string; files: Array<{ path: string }> };
+                const archive = process.env.PACKAGE_TARBALL
+                    ? resolve(process.env.PACKAGE_TARBALL)
+                    : join(fixture, packed.filename);
 
-            expect(packed.files.some((file) => file.path.startsWith('package/dist/docs/'))).toBe(false);
-            mkdirSync(join(fixture, 'src'));
-            writeFileSync(
-                join(fixture, 'package.json'),
-                JSON.stringify({
-                    private: true,
-                    type: 'module',
-                    dependencies: {
-                        'sileo-svelte': `file:${archive}`,
-                        svelte: packageJson.devDependencies.svelte,
-                        vite: packageJson.devDependencies.vite,
-                        '@sveltejs/vite-plugin-svelte': packageJson.devDependencies['@sveltejs/vite-plugin-svelte']
-                    }
-                })
-            );
-            writeFileSync(
-                join(fixture, 'src', 'App.svelte'),
-                `<script lang="ts">
+                expect(packed.files.some((file) => /^(?:package\/)?dist\/docs\//.test(file.path))).toBe(false);
+                const contents = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).split('\n');
+                expect(contents).toContain('package/dist/toast-motion.svelte.js');
+                expect(contents).toContain('package/dist/geometry.js');
+                expect(contents).toContain('package/skills/sileo-svelte/SKILL.md');
+                expect(Object.keys(packageJson.dependencies)).toEqual(['motion']);
+                expect(contents.some((path) => /\/(?:docs|routes|tests)\//.test(path))).toBe(false);
+                const manifest = JSON.parse(
+                    execFileSync('tar', ['-xOf', archive, 'package/package.json'], { encoding: 'utf8' })
+                );
+                expect(manifest.version).toBe(packageJson.version);
+                expect(manifest.dependencies.motion).toBe(packageJson.dependencies.motion);
+                mkdirSync(join(fixture, 'src'));
+                writeFileSync(
+                    join(fixture, 'package.json'),
+                    JSON.stringify({
+                        private: true,
+                        type: 'module',
+                        dependencies: {
+                            'sileo-svelte': `file:${archive}`,
+                            svelte: svelteVersion,
+                            vite: packageJson.devDependencies.vite,
+                            '@sveltejs/vite-plugin-svelte': packageJson.devDependencies['@sveltejs/vite-plugin-svelte']
+                        }
+                    })
+                );
+                writeFileSync(
+                    join(fixture, 'src', 'App.svelte'),
+                    `<script lang="ts">
 import { Toaster, sileo, type SileoPromiseOptions } from 'sileo-svelte';
 import 'sileo-svelte/styles.css';
 
+const glassId = sileo.success({ id: 'glass', title: 'Ready', fill: 'rgba(24,24,27,0.5)', styles: { backdropFilter: 'blur(12px)' }, classes: { toast: 'notice' } });
+sileo.update(glassId, { button: null });
 const promiseOptions: SileoPromiseOptions<string> = {
     loading: { title: 'Loading' },
     action: (value) => ({ title: value, button: { title: 'Open', onClick: () => undefined } }),
@@ -67,40 +84,42 @@ void promiseOptions;
 <button onclick={() => sileo.success('Ready')}>Notify</button>
 <Toaster />
 `
-            );
-            writeFileSync(
-                join(fixture, 'src', 'main.ts'),
-                `import { mount } from 'svelte';
+                );
+                writeFileSync(
+                    join(fixture, 'src', 'main.ts'),
+                    `import { mount } from 'svelte';
 import App from './App.svelte';
 mount(App, { target: document.getElementById('app')! });
 `
-            );
-            writeFileSync(join(fixture, 'src', 'ssr.ts'), `export { default } from './App.svelte';\n`);
-            writeFileSync(
-                join(fixture, 'vite.config.ts'),
-                `import { defineConfig } from 'vite';
+                );
+                writeFileSync(join(fixture, 'src', 'ssr.ts'), `export { default } from './App.svelte';\n`);
+                writeFileSync(
+                    join(fixture, 'vite.config.ts'),
+                    `import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 export default defineConfig({ plugins: [svelte()] });
 `
-            );
-            writeFileSync(
-                join(fixture, 'index.html'),
-                `<div id="app"></div><script type="module" src="/src/main.ts"></script>\n`
-            );
+                );
+                writeFileSync(
+                    join(fixture, 'index.html'),
+                    `<div id="app"></div><script type="module" src="/src/main.ts"></script>\n`
+                );
 
-            execFileSync('bun', ['install', '--ignore-scripts'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' });
-            expect(() =>
-                execFileSync('bunx', ['vite', 'build'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' })
-            ).not.toThrow();
-            expect(() =>
-                execFileSync('bunx', ['vite', 'build', '--ssr', 'src/ssr.ts', '--outDir', 'dist-ssr'], {
-                    cwd: fixture,
-                    encoding: 'utf8',
-                    stdio: 'pipe'
-                })
-            ).not.toThrow();
-        } finally {
-            rmSync(fixture, { recursive: true, force: true });
-        }
-    }, 30_000);
+                execFileSync('bun', ['install', '--ignore-scripts'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' });
+                expect(() =>
+                    execFileSync('bunx', ['vite', 'build'], { cwd: fixture, encoding: 'utf8', stdio: 'pipe' })
+                ).not.toThrow();
+                expect(() =>
+                    execFileSync('bunx', ['vite', 'build', '--ssr', 'src/ssr.ts', '--outDir', 'dist-ssr'], {
+                        cwd: fixture,
+                        encoding: 'utf8',
+                        stdio: 'pipe'
+                    })
+                ).not.toThrow();
+            } finally {
+                rmSync(fixture, { recursive: true, force: true });
+            }
+        },
+        60_000
+    );
 });

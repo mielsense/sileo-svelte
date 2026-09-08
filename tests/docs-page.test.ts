@@ -37,27 +37,37 @@ describe('documentation playground', () => {
         store.globalOptions = undefined;
     });
 
-    test('copies source for the selected scenario and position', async () => {
+    test('copies source for the selected scenario', async () => {
         const writeText = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
         const { getByRole, getByText, container } = render(Playground);
 
-        await fireEvent.click(getByRole('radio', { name: 'Bottom left' }));
-        await fireEvent.click(getByRole('button', { name: 'Async promise One continuous toast' }));
+        await fireEvent.click(getByRole('button', { name: 'Examples' }));
+        await fireEvent.click(getByRole('combobox', { name: 'Example' }));
+        await fireEvent.pointerDown(getByRole('option', { name: 'Async promise' }), {
+            pointerType: 'mouse',
+            button: 0
+        });
+        await fireEvent.click(getByRole('option', { name: 'Async promise' }));
         const source = container.querySelector('[data-scenario-source]')?.textContent ?? '';
         expect(container.querySelector('[data-scenario-source] .hljs-keyword')).toBeTruthy();
         await fireEvent.click(getByRole('button', { name: 'Copy Async promise example' }));
 
-        expect(source).toContain("const position = 'bottom-left'");
+        expect(source).toContain("const position = 'top-right'");
         expect(source).toContain('const delay');
         expect(writeText).toHaveBeenCalledWith(source);
-        expect(getByText('Async promise example copied')).toBeTruthy();
+        expect(getByText('Copied')).toBeTruthy();
     });
 
     test('runs the selected action scenario in the embedded preview', async () => {
         const { getByRole, container } = render(Playground);
-        await fireEvent.click(getByRole('radio', { name: 'Bottom left' }));
-        await fireEvent.click(getByRole('button', { name: 'Action and retry Persistent interaction' }));
+        await fireEvent.click(getByRole('button', { name: 'Examples' }));
+        await fireEvent.click(getByRole('combobox', { name: 'Example' }));
+        await fireEvent.pointerDown(getByRole('option', { name: 'Action and retry' }), {
+            pointerType: 'mouse',
+            button: 0
+        });
+        await fireEvent.click(getByRole('option', { name: 'Action and retry' }));
         await fireEvent.click(getByRole('button', { name: 'Run example' }));
         await tick();
 
@@ -71,14 +81,25 @@ describe('documentation playground', () => {
         vi.useFakeTimers();
         const { getByRole, container } = render(Playground);
 
-        await fireEvent.click(getByRole('button', { name: 'Async promise One continuous toast' }));
+        await fireEvent.click(getByRole('button', { name: 'Examples' }));
+        await fireEvent.click(getByRole('combobox', { name: 'Example' }));
+        await fireEvent.pointerDown(getByRole('option', { name: 'Async promise' }), {
+            pointerType: 'mouse',
+            button: 0
+        });
+        await fireEvent.click(getByRole('option', { name: 'Async promise' }));
         await fireEvent.click(getByRole('button', { name: 'Run example' }));
-        await fireEvent.click(getByRole('button', { name: 'Core states State helpers' }));
+        await fireEvent.click(getByRole('combobox', { name: 'Example' }));
+        await fireEvent.pointerDown(getByRole('option', { name: 'Core states' }), {
+            pointerType: 'mouse',
+            button: 0
+        });
+        await fireEvent.click(getByRole('option', { name: 'Core states' }));
         await vi.advanceTimersByTimeAsync(1200);
         await tick();
 
         const preview = container.querySelector('[data-playground-preview]');
-        expect(getByRole('button', { name: 'Core states State helpers' }).getAttribute('aria-pressed')).toBe('true');
+        expect(getByRole('combobox', { name: 'Example' }).textContent).toContain('Core states');
         expect(preview?.textContent).toContain('Release saved');
         expect(preview?.textContent).not.toContain('Build uploaded');
     });

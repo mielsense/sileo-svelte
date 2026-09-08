@@ -3,6 +3,8 @@ import type { Snippet } from 'svelte';
 export type SileoState = 'success' | 'loading' | 'error' | 'warning' | 'info' | 'action';
 
 export interface SileoClasses {
+    toast?: string;
+    background?: string;
     title?: string;
     description?: string;
     badge?: string;
@@ -10,6 +12,8 @@ export interface SileoClasses {
 }
 
 export interface SileoStyles {
+    /** CSS backdrop-filter applied inside the animated toast silhouette. */
+    backdropFilter?: string;
     titleColor?: string;
     descriptionColor?: string;
     badgeColor?: string;
@@ -36,6 +40,7 @@ export const SILEO_POSITIONS = [
 export type SileoPosition = (typeof SILEO_POSITIONS)[number];
 
 export interface SileoOptions {
+    id?: string;
     title?: string;
     description?: Snippet | string;
     position?: SileoPosition;
@@ -46,5 +51,5 @@ export interface SileoOptions {
     fill?: string;
     roundness?: number;
     autopilot?: boolean | { expand?: number; collapse?: number };
-    button?: SileoButton;
+    button?: SileoButton | null;
 }

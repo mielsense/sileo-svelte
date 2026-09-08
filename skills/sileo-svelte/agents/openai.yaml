@@ -1,0 +1,4 @@
+interface:
+    display_name: 'Sileo for Svelte'
+    short_description: 'Add and customize Svelte toast notifications'
+    default_prompt: 'Use $sileo-svelte to add toast notifications to this Svelte app.'

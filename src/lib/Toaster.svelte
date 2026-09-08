@@ -42,11 +42,13 @@
 
     /* ---------------------------------- State --------------------------------- */
 
-    let activeId = $derived(latest);
+    let focusedId = $state<string>();
+    let activeId = $derived(focusedId ?? latest);
     let hovering = false;
     let liveMounted = $state(false);
     let announcement = $state('');
-    let announcedKey: string | undefined;
+    let observedKeys: string[] = [];
+    let announcementRevision = 0;
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- timers are non-reactive internal state; SvelteMap causes infinite loops in the timer $effect
     const timers = new Map<string, number>();
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- lifecycle registrations are non-reactive disposers
@@ -70,17 +72,33 @@
     });
 
     $effect(() => {
-        const item = latestItem;
-        if (!liveMounted || !item) return;
+        const toasts = store.toasts;
+        if (!liveMounted) return;
 
-        const key = timeoutKey(item);
-        if (announcedKey === key) return;
-        announcedKey = key;
+        const previousKeys = new Set(observedKeys);
+        const changed = toasts.filter((item) => !item.closing && !item.exiting && !previousKeys.has(timeoutKey(item)));
+        observedKeys = toasts.map(timeoutKey);
+        if (!changed.length) return;
+
+        const revision = ++announcementRevision;
         announcement = '';
         void tick().then(() => {
-            if (liveMounted && store.toasts.some((toast) => timeoutKey(toast) === key)) {
-                announcement = item.title ?? item.state ?? 'Notification';
-            }
+            if (!liveMounted || revision !== announcementRevision) return;
+            announcement = changed
+                .filter((item) =>
+                    store.toasts.some(
+                        (toast) => timeoutKey(toast) === timeoutKey(item) && !toast.closing && !toast.exiting
+                    )
+                )
+                .map((item) =>
+                    [
+                        item.title ?? item.state ?? 'Notification',
+                        typeof item.description === 'string' ? item.description : undefined
+                    ]
+                        .filter(Boolean)
+                        .join('. ')
+                )
+                .join(' ');
         });
     });
 
@@ -99,10 +117,10 @@
     }
 
     function schedule(items: SileoItem[]) {
-        if (hovering) return;
+        if (hovering || focusedId !== undefined) return;
 
         for (const item of items) {
-            if (item.exiting) continue;
+            if (item.exiting || item.closing) continue;
             const key = timeoutKey(item);
             if (timers.has(key)) continue;
 
@@ -121,6 +139,7 @@
     $effect(() => {
         const toasts = store.toasts;
 
+        if (focusedId && !toasts.some((item) => item.id === focusedId && !item.exiting)) focusedId = undefined;
         const toastKeys = new Set(toasts.map(timeoutKey));
         for (const [key, unregister] of mounted) {
             if (!toastKeys.has(key)) {
@@ -203,11 +222,17 @@
     }
 
     function handleMouseLeave() {
-        activeId = latest;
+        activeId = focusedId ?? latest;
         if (hovering) {
             hovering = false;
             schedule(store.toasts);
         }
+    }
+
+    function handleFocusChange(toastId: string, focused: boolean) {
+        focusedId = focused ? toastId : undefined;
+        if (focused) clearAllTimers();
+        else schedule(store.toasts);
     }
 
     function handleActivate(toastId: string) {
@@ -258,6 +283,7 @@
                     onmouseenter={() => handleMouseEnter(item.id)}
                     onmouseleave={() => handleMouseLeave()}
                     onActivate={() => handleActivate(item.id)}
+                    onFocusChange={(focused) => handleFocusChange(item.id, focused)}
                     onDismiss={() => dismissToast(item.id, item.instanceId)}
                     onCollapseComplete={() => completeToastCollapse(item.id, item.instanceId)}
                     onExitComplete={() => completeToastExit(item.id, item.instanceId)}

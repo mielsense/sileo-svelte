@@ -58,25 +58,36 @@ export function createToastMotion(options: ToastMotionOptions) {
         };
     }
 
+    let wasExiting = false;
     $effect(() => {
         const { root } = options.elements();
         const reduced = prefersReducedMotion.current;
-        if (!root || !ready || !options.exiting()) return;
+        const exiting = options.exiting();
+        if (!root || !ready || (!exiting && !wasExiting)) return;
+        wasExiting = exiting;
 
         const offset = options.edge() === 'bottom' ? -6 : 6;
-        const keyframes =
-            options.edge() === 'bottom'
-                ? reduced
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: offset, scale: 0.95 }
-                : reduced
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: offset, scale: 0.95 };
-
+        const keyframes = exiting
+            ? reduced
+                ? { opacity: 0 }
+                : { opacity: 0, y: offset, scale: 0.95 }
+            : { opacity: 1, y: 0, scale: 1 };
         const control = controls.start('presence', () =>
             animate(root, keyframes, springTransition(reduced, 0, duration * 0.66))
         );
-        void control.finished.then(options.onExitComplete, () => undefined);
+        let cancelled = false;
+        if (exiting) {
+            void control.finished.then(
+                () => {
+                    if (!cancelled && options.exiting()) options.onExitComplete();
+                },
+                () => undefined
+            );
+        }
+        return () => {
+            cancelled = true;
+            controls.stop('presence');
+        };
     });
 
     $effect(() => {
@@ -176,11 +187,16 @@ export function createToastMotion(options: ToastMotionOptions) {
         return readMotionDuration(node.closest('[data-sileo-toast]') ?? node, duration);
     }
 
-    function animateLoaders(node: HTMLElement, reduced: boolean) {
-        const loaders = node.querySelectorAll<SVGElement>('[data-sileo-icon="spin"]');
-        return loaders.length && !reduced
-            ? animate(loaders, { rotate: 360 }, { duration: 1, ease: 'linear', repeat: Infinity })
-            : null;
+    function animateLoaders(node: HTMLElement) {
+        $effect(() => {
+            const reduced = prefersReducedMotion.current;
+            const loaders = node.querySelectorAll<SVGElement>('[data-sileo-icon="spin"]');
+            const loader =
+                loaders.length && !reduced
+                    ? animate(loaders, { rotate: 360 }, { duration: 1, ease: 'linear', repeat: Infinity })
+                    : null;
+            return () => loader?.stop();
+        });
     }
 
     function attachHeaderCurrent(node: HTMLElement) {
@@ -189,7 +205,7 @@ export function createToastMotion(options: ToastMotionOptions) {
         const control = animate(
             node,
             reduced
-                ? { opacity: [0, 1] }
+                ? { opacity: [0, 1], filter: 'blur(0px)', y: 0, scale: 1 }
                 : {
                       opacity: [0, 1],
                       filter: ['blur(3px)', 'blur(0px)'],
@@ -198,7 +214,7 @@ export function createToastMotion(options: ToastMotionOptions) {
                   },
             easeTransition(reduced, Math.min(localDuration * 0.38, 0.24), Math.min(localDuration * 0.04, 0.025))
         );
-        const loader = animateLoaders(node, reduced);
+        animateLoaders(node);
         void control.finished.then(
             () => {
                 node.style.opacity = '1';
@@ -209,7 +225,6 @@ export function createToastMotion(options: ToastMotionOptions) {
 
         return () => {
             control.stop();
-            loader?.stop();
         };
     }
 
@@ -219,7 +234,7 @@ export function createToastMotion(options: ToastMotionOptions) {
         const control = animate(
             node,
             reduced
-                ? { opacity: [1, 0] }
+                ? { opacity: [1, 0], filter: 'blur(0px)', y: 0, scale: 1 }
                 : {
                       opacity: [1, 0],
                       filter: ['blur(0px)', 'blur(3px)'],
@@ -228,7 +243,7 @@ export function createToastMotion(options: ToastMotionOptions) {
                   },
             easeTransition(reduced, Math.min(localDuration * 0.3, 0.2))
         );
-        const loader = animateLoaders(node, reduced);
+        animateLoaders(node);
 
         void control.finished.then(
             () => options.clearPreviousHeader(previousKey, currentKey),
@@ -237,7 +252,6 @@ export function createToastMotion(options: ToastMotionOptions) {
 
         return () => {
             control.stop();
-            loader?.stop();
         };
     }
 
@@ -259,6 +273,10 @@ export function createToastMotion(options: ToastMotionOptions) {
             swipeY.set(y);
         },
         resetSwipe() {
+            if (prefersReducedMotion.current) {
+                swipeY.jump(0);
+                return;
+            }
             controls.start('swipe', () =>
                 animate(swipeY, 0, { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 })
             );

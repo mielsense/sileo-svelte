@@ -27,6 +27,17 @@ sileo.info('A new build is available');
 
 A string becomes the title. Pass an object when you need a description, position, duration, action, or visual override.
 
+## Replace a named toast
+
+Pass `id` when several calls refer to the same notification. Reusing it replaces the previous toast instead of adding another.
+
+```ts
+sileo.loading({ id: 'upload', title: 'Uploading report.pdf' });
+sileo.success({ id: 'upload', title: 'Report uploaded' });
+```
+
+Replacement starts a fresh lifetime and uses the new call's options. Use `update` when you want to keep options you do not change.
+
 ## Update one toast
 
 Keep the id returned by the first call, then update that toast in place.
@@ -48,6 +59,16 @@ sileo.update(id, {
 
 Use this for one task with several states. Creating a new toast for every state makes the interface jump and leaves stale messages behind.
 
+Updates preserve omitted fields. Set `button: null` to remove an existing action after the task finishes.
+
+```ts
+sileo.update(id, {
+    state: 'success',
+    title: 'Payment complete',
+    button: null
+});
+```
+
 ## Dismiss, close, and clear
 
 ```ts
@@ -57,7 +78,7 @@ sileo.clear();
 sileo.clear('bottom-right');
 ```
 
-`dismiss` and `close` both retire one toast. `clear` retires every toast, or only those at a supplied position.
+`dismiss` starts the exit animation. `close` collapses the toast before exiting. `clear` removes notifications immediately, either everywhere or at one position.
 
 ## Control duration
 
@@ -74,7 +95,7 @@ sileo.action({
 });
 ```
 
-Persistent toasts need a clear action or a reliable programmatic close path.
+Action and loading toasts stay open by default. Other states last 6000ms. Hover on a fine pointer or keyboard focus inside a toast pauses expiry. Leaving the toast restarts its full duration.
 
 ## Reuse defaults
 

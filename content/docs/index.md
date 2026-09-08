@@ -1,6 +1,6 @@
 ---
 title: Sileo Svelte
-description: Physics-based toast notifications for Svelte 5, with typed helpers, promise states, actions, and rich snippets.
+description: Animated toast notifications for Svelte 5.
 label: Overview
 ---
 
@@ -10,10 +10,10 @@ This package is an unofficial Svelte port of [the original Sileo library](https:
 
 ## Start here
 
-Install the package and its stylesheet.
+Install with npm, pnpm, Bun, or Yarn.
 
 ```bash
-bun add sileo-svelte
+npm install sileo-svelte
 ```
 
 Mount one toaster near the root of your app.
@@ -44,14 +44,11 @@ Call `sileo` from any client-side component.
 <button onclick={save}>Save release</button>
 ```
 
-## What ships
+## Choose a flow
 
-- Six semantic states plus a neutral `show` helper.
-- Updates that keep the same toast id.
-- Promise flows with typed success data.
-- Action buttons and persistent notifications.
-- Svelte snippets for descriptions and icons.
-- Per-toast classes, colors, and timing.
+- [Creating toasts](/docs/creating-toasts): show, update, and dismiss notifications.
+- [Async flows](/docs/async-flows): follow an upload or save from loading to completion.
+- [Customization](/docs/customization): change colors, add frosted glass, or render Svelte snippets.
 
 ## Requirements
 
@@ -59,8 +56,6 @@ Sileo Svelte requires Svelte 5.56 or newer. Motion is included as a runtime depe
 
 ## Try the real component
 
-The [playground](/playground) runs every documented scenario against the package itself. Change the viewport position, run a flow, and copy the exact source beside it.
+Use the [playground](/playground) to change the state, text, position, timing, and appearance. Show several toasts to test stacking, or update the last toast in place. The Code view gives you the matching Svelte component.
 
-## Next step
-
-Read [Installation](/docs/installation) for the full root layout setup and default options. Check the [Changelog](/docs/changelog) before upgrading between beta versions.
+The Examples tab covers promises, retry actions, scoped defaults, and snippets.

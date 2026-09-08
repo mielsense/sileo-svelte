@@ -1,4 +1,5 @@
 <script lang="ts">
+    import IconButton from './IconButton.svelte';
     import { onMount } from 'svelte';
 
     type Theme = 'dark' | 'light';
@@ -20,11 +21,13 @@
     });
 </script>
 
-<button
-    class="icon-button theme-toggle"
+<IconButton
+    class="theme-toggle"
+    variant="outline"
+    size="icon"
     type="button"
     aria-label={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
-    title={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
+    tooltip={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
     onclick={() => applyTheme(theme === 'dark' ? 'light' : 'dark')}
 >
     {#if theme === 'dark'}
@@ -49,4 +52,4 @@
             <path d="M16.5 12.36A6.7 6.7 0 0 1 7.64 3.5 6.7 6.7 0 1 0 16.5 12.36Z" />
         </svg>
     {/if}
-</button>
+</IconButton>

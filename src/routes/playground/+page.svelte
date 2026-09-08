@@ -1,14 +1,19 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte';
-    import { resolve } from '$app/paths';
+    import ToastBuilder from './ToastBuilder.svelte';
+    import PreviewPanel from './PreviewPanel.svelte';
+    let mode = $state<'build' | 'examples'>('build');
+    import * as Select from '$docs/components/ui/select/index.js';
+    import { Button } from '$docs/components/ui/button/index.js';
+    import { onDestroy, onMount } from 'svelte';
+    let ready = $state(false);
+    onMount(() => {
+        ready = true;
+    });
     import { page } from '$app/state';
-    import svelteLanguage from 'svelte-highlight/languages/svelte';
-    import { ensureRegistered, registry } from 'svelte-highlight/registry';
     import Sileo from '$lib/Sileo.svelte';
+    import './playground.css';
     import type { SileoButton, SileoPosition } from '$lib/index.js';
     import { scenarios, type ScenarioCompletion, type ScenarioToast } from '../_components/scenarios.js';
-
-    ensureRegistered(svelteLanguage);
 
     const positions: Array<{ value: SileoPosition; label: string }> = [
         { value: 'top-left', label: 'Top left' },
@@ -19,9 +24,9 @@
         { value: 'bottom-right', label: 'Bottom right' }
     ];
 
+    let viewMode = $state<'preview' | 'code'>('preview');
     let selectedScenarioId = $state('core');
     let selectedPosition = $state<SileoPosition>('top-right');
-    let copyStatus = $state('');
     let selectedStatus = $state('');
     let preview = $state<ScenarioToast>({
         state: 'success',
@@ -36,7 +41,6 @@
 
     const selectedScenario = $derived(scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? scenarios[0]);
     const selectedSource = $derived(selectedScenario.source(selectedPosition));
-    const highlightedSource = $derived(registry.highlight(selectedSource, { language: svelteLanguage.name }).value);
     const canonicalUrl = $derived(
         page.url.origin === 'null' ? page.url.pathname : new URL(page.url.pathname, page.url.origin).href
     );
@@ -73,12 +77,12 @@
         clearCompletion();
         selectedScenarioId = id;
         selectedStatus = `${scenarios.find((scenario) => scenario.id === id)?.label ?? 'Scenario'} selected`;
-        copyStatus = '';
         const next = scenarios.find((scenario) => scenario.id === id);
         if (next) updatePreview(next.initial(context()));
     }
 
     function runScenario() {
+        viewMode = 'preview';
         clearCompletion();
         const currentContext = context();
         updatePreview(selectedScenario.initial(currentContext));
@@ -92,15 +96,6 @@
             scheduleCompletion(completion);
         } else {
             previewExiting = true;
-        }
-    }
-
-    async function copySource() {
-        try {
-            await navigator.clipboard.writeText(selectedSource);
-            copyStatus = `${selectedScenario.label} example copied`;
-        } catch {
-            copyStatus = `Could not copy the ${selectedScenario.label} example`;
         }
     }
 
@@ -148,155 +143,138 @@
 <main
     id="main-content"
     class="playground-page"
+    inert={!ready}
+    data-playground-ready={ready}
 >
     <header class="playground-header">
-        <div>
-            <p class="doc-kicker">Interactive reference</p>
-            <h1>Notification playground</h1>
-            <p>Run the package against six real scenarios. The source updates with the selected viewport position.</p>
-        </div>
-        <a
-            class="secondary-action"
-            href={resolve('/docs')}>Read the docs</a
+        <h1>Playground</h1>
+        <div
+            class="playground-modes"
+            role="group"
+            aria-label="Playground mode"
         >
+            <Button
+                variant={mode === 'build' ? 'secondary' : 'ghost'}
+                aria-pressed={mode === 'build'}
+                onclick={() => (mode = 'build')}>Build a toast</Button
+            ><Button
+                variant={mode === 'examples' ? 'secondary' : 'ghost'}
+                aria-pressed={mode === 'examples'}
+                onclick={() => (mode = 'examples')}>Examples</Button
+            >
+        </div>
     </header>
 
-    <div class="playground-layout shadow-elevated">
-        <aside
-            class="scenario-rail"
-            aria-label="Notification scenarios"
-        >
-            <p>Scenarios</p>
-            {#each scenarios as scenario (scenario.id)}
-                <button
-                    type="button"
-                    aria-pressed={selectedScenarioId === scenario.id}
-                    onclick={() => selectScenario(scenario.id)}
-                >
-                    <span>{scenario.label}</span>
-                    <small>{scenario.eyebrow}</small>
-                </button>
-            {/each}
-        </aside>
-
-        <section
-            class="playground-workspace"
-            aria-labelledby="scenario-title"
-        >
-            <div
-                class="scenario-summary"
-                data-scenario-detail
-                class:scenario-enter={selectedScenarioId}
+    {#if mode === 'build'}
+        <ToastBuilder />
+    {:else}
+        <div class="playground-layout">
+            <aside
+                class="scenario-rail"
+                aria-label="Notification scenarios"
             >
-                <div>
-                    <p>{selectedScenario.eyebrow}</p>
-                    <h2 id="scenario-title">{selectedScenario.label}</h2>
-                    <span>{selectedScenario.outcome}</span>
-                </div>
-                <button
-                    class="primary-action"
-                    type="button"
-                    onclick={runScenario}>Run example</button
-                >
-            </div>
-            <span
-                class="visually-hidden"
-                aria-live="polite">{selectedStatus}</span
-            >
-
-            <div
-                class="position-picker"
-                role="radiogroup"
-                aria-label="Toast position"
-            >
-                {#each positions as position (position.value)}
-                    <label>
-                        <input
-                            type="radio"
-                            name="position"
-                            value={position.value}
-                            bind:group={selectedPosition}
-                        />
-                        <span>{position.label}</span>
-                    </label>
-                {/each}
-            </div>
-
-            <div class="preview-stage">
-                <div
-                    class="preview-grid"
-                    aria-hidden="true"
-                ></div>
-                <div class="preview-label">
-                    <span>Live viewport</span><strong
-                        >{positions.find((item) => item.value === selectedPosition)?.label}</strong
+                <div class="builder-field">
+                    <Select.Root
+                        items={scenarios.map((scenario) => ({ value: scenario.id, label: scenario.label }))}
+                        value={selectedScenarioId}
+                        onValueChange={(value) => {
+                            if (value) selectScenario(value);
+                        }}
                     >
+                        <Select.Label>Example</Select.Label><Select.Trigger><Select.Value /></Select.Trigger>
+                        <Select.Popup alignItemWithTrigger={false}
+                            >{#each scenarios as scenario (scenario.id)}<Select.Item value={scenario.id}
+                                    >{scenario.label}</Select.Item
+                                >{/each}</Select.Popup
+                        >
+                    </Select.Root>
                 </div>
-                <div
-                    class={[
-                        'playground-toast-host',
-                        {
-                            'at-top': selectedPosition.startsWith('top'),
-                            'at-bottom': selectedPosition.startsWith('bottom'),
-                            'at-left': selectedPosition.endsWith('left'),
-                            'at-center': selectedPosition.endsWith('center'),
-                            'at-right': selectedPosition.endsWith('right')
-                        }
-                    ]}
-                    data-playground-preview
+                <p
+                    class="example-description"
+                    data-scenario-detail
                 >
-                    <Sileo
-                        id="scenario-preview"
-                        className="embedded-toast"
-                        toastState={preview.state}
-                        title={preview.title}
-                        description={preview.description}
-                        icon={preview.icon}
-                        fill={preview.fill}
-                        styles={preview.styles}
-                        classes={preview.classes}
-                        button={previewButton}
-                        roundness={preview.roundness}
-                        exiting={previewExiting}
-                        refreshKey={previewKey}
-                        position={previewAlignment(selectedPosition)}
-                        expand={previewExpansion(selectedPosition)}
-                        canExpand
-                        autoExpandDelayMs={preview.state === 'loading' ? undefined : 120}
-                    />
+                    {selectedScenario.outcome}
+                </p>
+                <div class="position-field">
+                    <Select.Root
+                        items={positions}
+                        value={selectedPosition}
+                        onValueChange={(value) => {
+                            if (value) selectedPosition = value;
+                        }}
+                        aria-label="Toast position"
+                    >
+                        <Select.Label>Position</Select.Label>
+                        <Select.Trigger><Select.Value /></Select.Trigger>
+                        <Select.Popup alignItemWithTrigger={false}>
+                            {#each positions as position (position.value)}
+                                <Select.Item value={position.value}>{position.label}</Select.Item>
+                            {/each}
+                        </Select.Popup>
+                    </Select.Root>
                 </div>
-            </div>
-
-            <div class="scenario-details">
-                <div>
-                    <p>Runtime values</p>
-                    <ul>
-                        {#each selectedScenario.parameters as parameter (parameter)}<li>{parameter}</li>{/each}
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <aside
-            class="source-panel"
-            aria-label="Example source"
-        >
-            <div class="source-toolbar">
-                <span>Example.svelte</span>
-                <button
+                <Button
+                    class="run-example"
                     type="button"
-                    aria-label={`Copy ${selectedScenario.label} example`}
-                    onclick={copySource}>Copy</button
+                    onclick={runScenario}>Run example <span aria-hidden="true">↗</span></Button
                 >
-            </div>
-            <!-- Highlighted HTML is generated from package-owned scenario strings, not user input. -->
-            <!-- eslint-disable svelte/no-at-html-tags -->
-            <pre aria-label={`${selectedScenario.label} source code`}><code
-                    class="hljs"
-                    data-scenario-source>{@html highlightedSource}</code
-                ></pre>
-            <!-- eslint-enable svelte/no-at-html-tags -->
-            <p aria-live="polite">{copyStatus}</p>
-        </aside>
-    </div>
+            </aside>
+
+            <section
+                class="playground-workspace"
+                aria-label="Example preview"
+            >
+                <span
+                    class="visually-hidden"
+                    aria-live="polite">{selectedStatus}</span
+                >
+                <PreviewPanel
+                    source={selectedSource}
+                    bind:viewMode
+                    label={`${selectedScenario.label} example`}
+                    onClear={() => {
+                        clearCompletion();
+                        previewExiting = true;
+                    }}
+                    clearDisabled={previewExiting}
+                >
+                    <div class="preview-stage">
+                        <div
+                            class={[
+                                'playground-toast-host',
+                                {
+                                    'at-top': selectedPosition.startsWith('top'),
+                                    'at-bottom': selectedPosition.startsWith('bottom'),
+                                    'at-left': selectedPosition.endsWith('left'),
+                                    'at-center': selectedPosition.endsWith('center'),
+                                    'at-right': selectedPosition.endsWith('right')
+                                }
+                            ]}
+                            data-playground-preview
+                        >
+                            <Sileo
+                                id="scenario-preview"
+                                className="embedded-toast"
+                                toastState={preview.state}
+                                title={preview.title}
+                                description={preview.description}
+                                icon={preview.icon}
+                                fill={preview.fill}
+                                styles={preview.styles}
+                                classes={preview.classes}
+                                button={previewButton}
+                                roundness={preview.roundness}
+                                exiting={previewExiting}
+                                refreshKey={previewKey}
+                                position={previewAlignment(selectedPosition)}
+                                expand={previewExpansion(selectedPosition)}
+                                canExpand
+                                autoExpandDelayMs={preview.state === 'loading' ? undefined : 120}
+                            />
+                        </div>
+                    </div>
+                </PreviewPanel>
+            </section>
+        </div>
+    {/if}
 </main>

@@ -22,7 +22,7 @@
         icon?: Snippet | null;
         classes?: SileoClasses;
         styles?: SileoStyles;
-        button?: SileoButton;
+        button?: SileoButton | null;
         fill: string;
     }
 
@@ -45,7 +45,7 @@
         icon?: Snippet | null;
         classes?: SileoClasses;
         styles?: SileoStyles;
-        button?: SileoButton;
+        button?: SileoButton | null;
         roundness?: number;
         closing?: boolean;
         exiting?: boolean;
@@ -57,6 +57,7 @@
         onmouseenter?: (e: MouseEvent) => void;
         onmouseleave?: (e: MouseEvent) => void;
         onActivate?: () => void;
+        onFocusChange?: (focused: boolean) => void;
         onDismiss?: () => void;
         onCollapseComplete?: () => void;
         onExitComplete?: () => void;
@@ -86,6 +87,7 @@
         onmouseenter,
         onmouseleave,
         onActivate,
+        onFocusChange,
         onDismiss,
         onCollapseComplete,
         onExitComplete
@@ -120,10 +122,12 @@
     let lastRefreshKey: string | undefined = undefined;
     let pending = $state<{ key?: string; payload: View } | null>(null);
     let pointerStart: number | null = null;
+    let activePointerId: number | null = null;
     let pointerStartedAt = 0;
     let pointerMaxDelta = 0;
     let pointerStartedOpen: boolean | null = null;
     let suppressClick = false;
+    let hovering = false;
     let frozenExpanded = $state(HEIGHT * 2.25);
 
     let headerLayer: HeaderLayer = $state(undefined as unknown as HeaderLayer);
@@ -157,6 +161,9 @@
 
     const headerKey = $derived(`${view?.toastState}-${view?.title}`);
     const filterId = `${componentId}-gooey`;
+    const shapeId = `${componentId}-shape`;
+    const maskId = `${componentId}-mask`;
+    const hasBackdrop = $derived(Boolean(view?.styles?.backdropFilter));
     const contentId = `${componentId}-content`;
     const resolvedRoundness = $derived(Math.max(0, roundness ?? DEFAULT_ROUNDNESS));
     const blur = $derived(resolvedRoundness * BLUR_RATIO);
@@ -247,7 +254,7 @@
 
         if (collapseDelay > 0) {
             autoCollapseTimer = window.setTimeout(() => {
-                isExpanded = false;
+                if (!hovering && !buttonEl?.contains(document.activeElement)) isExpanded = false;
             }, collapseDelay);
         }
 
@@ -331,6 +338,10 @@
             }
         },
         onCollapsed: () => {
+            if (closing) {
+                onCollapseComplete?.();
+                return;
+            }
             const nextPending = pending;
             if (nextPending) {
                 view = nextPending.payload;
@@ -338,7 +349,6 @@
                 pending = null;
                 return;
             }
-            if (closing) onCollapseComplete?.();
         },
         onExitComplete: () => onExitComplete?.()
     });
@@ -365,18 +375,21 @@
 
     function handleEnter(e: MouseEvent) {
         if (!canHover()) return;
+        hovering = true;
         onmouseenter?.(e);
         if (hasDesc) isExpanded = true;
     }
 
     function handleLeave(e: MouseEvent) {
         if (!canHover()) return;
+        hovering = false;
         onmouseleave?.(e);
         if (buttonEl?.contains(document.activeElement)) return;
         isExpanded = false;
     }
 
     function handleFocusIn() {
+        onFocusChange?.(true);
         if (!hasDesc || isLoading || (!allowExpand && !onActivate)) return;
         onActivate?.();
         isExpanded = true;
@@ -385,6 +398,7 @@
     function handleFocusOut(e: FocusEvent) {
         const nextTarget = e.relatedTarget;
         if (nextTarget instanceof Node && buttonEl?.contains(nextTarget)) return;
+        onFocusChange?.(false);
         isExpanded = false;
     }
 
@@ -409,9 +423,13 @@
     }
 
     function handlePointerDown(e: PointerEvent) {
-        if (exiting) return;
+        if (exiting || e.button !== 0 || pointerStart !== null) return;
         const target = e.target as HTMLElement;
-        if (target.closest('[data-sileo-button]')) return;
+        if (
+            target.closest('a, input, select, textarea, [contenteditable], [role=button], [role=link]') ||
+            (target.closest('button') && !target.closest('[data-sileo-trigger]'))
+        )
+            return;
 
         if (target.closest('[data-sileo-trigger]')) {
             onActivate?.();
@@ -420,6 +438,8 @@
 
         if (!onDismiss) return;
         suppressClick = false;
+        motion.stopSwipe();
+        activePointerId = e.pointerId;
         pointerStart = e.clientY;
         pointerStartedAt = e.timeStamp;
         pointerMaxDelta = 0;
@@ -430,7 +450,7 @@
 
     function swipeGesture(el: HTMLDivElement) {
         const onMove = (e: PointerEvent) => {
-            if (pointerStart === null) return;
+            if (pointerStart === null || e.pointerId !== activePointerId) return;
             const dy = e.clientY - pointerStart;
             pointerMaxDelta = Math.max(pointerMaxDelta, Math.abs(dy));
             if (pointerMaxDelta > 5) suppressClick = true;
@@ -438,9 +458,10 @@
         };
 
         const onUp = (e: PointerEvent) => {
-            if (pointerStart === null) return;
+            if (pointerStart === null || e.pointerId !== activePointerId) return;
             const dy = e.clientY - pointerStart;
             pointerStart = null;
+            activePointerId = null;
             suppressClick = pointerMaxDelta > 5;
             pointerMaxDelta = 0;
             if (shouldDismissSwipe(dy, e.timeStamp - pointerStartedAt)) {
@@ -450,7 +471,9 @@
             }
         };
 
-        const onCancel = () => {
+        const onCancel = (e: PointerEvent) => {
+            if (e.pointerId !== activePointerId) return;
+            activePointerId = null;
             pointerStart = null;
             pointerMaxDelta = 0;
             pointerStartedOpen = null;
@@ -458,8 +481,8 @@
             motion.resetSwipe();
         };
 
-        const onLostCapture = () => {
-            if (pointerStart !== null) onCancel();
+        const onLostCapture = (e: PointerEvent) => {
+            if (pointerStart !== null) onCancel(e);
         };
 
         const onCapturedClick = (e: MouseEvent) => {
@@ -553,6 +576,8 @@
         </div>
     {/snippet}
 
+    <!-- Delegates focus and Escape from the header and custom snippet controls. -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         {@attach motion.attachToast}
         {@attach swipeGesture}
@@ -566,11 +591,14 @@
         data-edge={expand}
         data-position={position}
         data-state={view.toastState}
-        class={className}
+        class={[className, view.classes?.toast]}
         style={rootStyle}
         onmouseenter={handleEnter}
         onmouseleave={handleLeave}
         onpointerdown={handlePointerDown}
+        onfocusin={handleFocusIn}
+        onfocusout={handleFocusOut}
+        onkeydown={handleKeyDown}
     >
         <div
             {@attach motion.attachSwipe}
@@ -582,6 +610,8 @@
             >
                 <svg
                     data-sileo-svg
+                    data-backdrop={hasBackdrop}
+                    class={hasBackdrop ? undefined : view.classes?.background}
                     width={measurements.canvasWidth}
                     height={geometry.canvasHeight}
                     viewBox={`0 0 ${measurements.canvasWidth} ${geometry.canvasHeight}`}
@@ -613,8 +643,23 @@
                                 operator="atop"
                             />
                         </filter>
+                        {#if hasBackdrop}
+                            <mask
+                                id={maskId}
+                                maskUnits="userSpaceOnUse"
+                                x="-20%"
+                                y="-20%"
+                                width="140%"
+                                height="140%"
+                            >
+                                <use href={`#${shapeId}`} />
+                            </mask>
+                        {/if}
                     </defs>
-                    <g filter={`url(#${filterId})`}>
+                    <g
+                        id={shapeId}
+                        filter={`url(#${filterId})`}
+                    >
                         <rect
                             bind:this={pillEl}
                             data-sileo-pill
@@ -623,7 +668,7 @@
                             height={geometry.pillHeight}
                             rx={resolvedRoundness}
                             ry={resolvedRoundness}
-                            fill={view.fill}
+                            fill={hasBackdrop ? '#fff' : view.fill}
                         />
                         <rect
                             bind:this={bodyEl}
@@ -633,10 +678,18 @@
                             height={geometry.bodyHeight}
                             rx={resolvedRoundness}
                             ry={resolvedRoundness}
-                            fill={view.fill}
+                            fill={hasBackdrop ? '#fff' : view.fill}
                         />
                     </g>
                 </svg>
+                {#if hasBackdrop}
+                    <div
+                        data-sileo-background
+                        class={view.classes?.background}
+                        style={`height:${geometry.canvasHeight}px;background:${view.fill};backdrop-filter:${view.styles?.backdropFilter};-webkit-backdrop-filter:${view.styles?.backdropFilter};mask:url(#${maskId});-webkit-mask:url(#${maskId})`}
+                        aria-hidden="true"
+                    ></div>
+                {/if}
             </div>
 
             {#if hasDesc && !isLoading}
@@ -644,15 +697,12 @@
                     {@attach measurements.measureHeader}
                     bind:this={headerEl}
                     type="button"
-                    tabindex={view.button ? 0 : -1}
+                    tabindex={view.button || isSnippet(view.description) ? 0 : -1}
                     aria-expanded={open}
                     aria-controls={contentId}
                     data-sileo-header
                     data-sileo-trigger
                     data-edge={expand}
-                    onfocusin={handleFocusIn}
-                    onfocusout={handleFocusOut}
-                    onkeydown={handleKeyDown}
                     onclick={handleTriggerClick}
                 >
                     {@render headerLayers()}
@@ -675,6 +725,7 @@
                     data-sileo-content
                     data-edge={expand}
                     data-visible={open}
+                    inert={!open}
                 >
                     <div
                         {@attach measurements.measureContent}
@@ -694,9 +745,6 @@
                                 data-sileo-button
                                 data-state={view.toastState}
                                 class={view.classes?.button}
-                                onfocusin={handleFocusIn}
-                                onfocusout={handleFocusOut}
-                                onkeydown={handleKeyDown}
                                 onclick={(e) => {
                                     e.stopPropagation();
                                     view.button?.onClick(id);

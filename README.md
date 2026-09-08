@@ -2,7 +2,7 @@
 
 Physics-based, gooey toast notifications for Svelte 5.56 and newer.
 
-[Website](https://sileo.miel.my) · [Scenario lab](#scenario-lab) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
+[Website](https://sileo.miel.my) · [Playground](#playground) · [npm](https://www.npmjs.com/package/sileo-svelte) · [GitHub](https://github.com/mielsense/sileo-svelte)
 
 An unofficial Svelte 5 port of [Sileo](https://github.com/hiaaryan/sileo) by
 [Aaryan](https://github.com/hiaaryan).
@@ -13,7 +13,7 @@ An unofficial Svelte 5 port of [Sileo](https://github.com/hiaaryan/sileo) by
 npm install sileo-svelte
 ```
 
-## 60-second start
+## Quick start
 
 Mount one toaster near the root of your app and import its stylesheet once.
 
@@ -30,14 +30,14 @@ Mount one toaster near the root of your app and import its stylesheet once.
 <Toaster position="top-right" />
 ```
 
-Trigger a toast from any component or module.
+Trigger a toast from a browser event handler or client-side task. Server-side calls do not enqueue notifications.
 
 ```svelte
 <script>
     import { sileo } from 'sileo-svelte';
 </script>
 
-<button onclick={() => sileo.success('Saved', 'Your changes are secure.')}>Save</button>
+<button onclick={() => sileo.success('Saved', 'Your changes are saved.')}>Save</button>
 ```
 
 Creation methods return the toast ID, which can be reused for updates and
@@ -84,7 +84,7 @@ The helper returns the original promise. Synchronous throws and rejected
 promises both use the error mapping. Errors thrown by success or action mappers
 also pass through the error mapping. If the error mapper itself throws, that
 failure is logged and the toast keeps its current state. Async results never
-replace a newer toast that reused the same ID.
+replace a newer toast that reused the same ID or revive a closing or dismissed toast.
 
 ### Add an action
 
@@ -131,7 +131,7 @@ sileo.info({
 
 `description` and `icon` also accept Svelte snippets for rich content.
 
-### Orchestrate one toast
+### Update a toast through a task
 
 Use an existing ID to morph one notification through a longer workflow.
 
@@ -294,31 +294,35 @@ the mechanism recommended for your Tailwind version.
 
 ## Accessibility and motion
 
-- Viewports use a polite live region.
+- A stable polite live region announces notification titles.
 - Headers with an action button are keyboard-focusable. Enter or Space expands
   and collapses that toast, including older stacked toasts. Status-only headers
   are not tab stops.
 - Click or tap expands and collapses descriptions. Escape closes an expanded
   actionable body and returns focus to its header.
 - Action buttons have visible focus treatment.
-- Hover pauses dismissal only on fine-pointer devices. Touch users can tap to
-  expand and swipe vertically to dismiss.
+- Hover on fine-pointer devices and keyboard focus inside an action pause dismissal.
+  Touch users can tap to expand and swipe vertically to dismiss.
 - `prefers-reduced-motion: reduce` removes transform-heavy entrances and loader
   motion while preserving immediate layout and opacity changes.
 
-## Scenario lab
+## Playground
 
-The repository includes a deterministic browser lab for core success, async
-promise, action and retry, scoped defaults, custom styling with an action, and
-rich snippet flows. It also exposes the source for each scenario. Run it
-locally:
+Run the docs and playground locally:
 
 ```bash
 bun install
 bun run dev
 ```
 
-Visit the deployed documentation and scenario lab at [sileo.miel.my](https://sileo.miel.my).
+Visit [sileo.miel.my](https://sileo.miel.my) or open `/playground` locally to try notifications, choose their position, and copy an example.
+The examples cover success, promises, retries, shared defaults, custom styles, and snippets.
+
+## Releasing
+
+Version 0.2.0 is prepared for release. It requires Svelte 5.56 or newer.
+See [the release guide](RELEASING.md) for the one-time npm trusted publisher setup
+and the version tag that starts publication.
 
 ## Credits
 
@@ -328,3 +332,13 @@ Visit the deployed documentation and scenario lab at [sileo.miel.my](https://sil
 ## License
 
 MIT
+
+## Agent skill
+
+Install the repository's integration guide for your coding agent:
+
+```bash
+npx skills add mielsense/sileo-svelte --skill sileo-svelte
+```
+
+The [skill source](skills/sileo-svelte/SKILL.md) covers setup, updates, promises, snippets, and styling. Agents can also read it at [the skill endpoint](https://sileo.miel.my/skill.md). Check the installed package version before using APIs documented on the main branch.

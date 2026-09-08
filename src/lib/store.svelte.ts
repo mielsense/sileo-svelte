@@ -119,6 +119,7 @@ export const dismissToast = (id: string, expectedInstanceId?: string) => {
             toast.id === id && toast.instanceId === item.instanceId ? { ...toast, exiting: true } : toast
         )
     );
+    clearLifecycleFallback(timeoutKey(item));
     scheduleLifecycleFallback({ ...item, exiting: true }, 'exit');
 };
 
@@ -245,6 +246,10 @@ const mergeUpdateOptions = (
 };
 
 const createToast = (options: InternalSileoOptions) => {
+    // Notifications belong to the browser, never to a shared SSR process.
+    if (typeof window === 'undefined') {
+        return { id: options.id ?? generateId(), instanceId: generateId() };
+    }
     const live = store.toasts.filter((t) => !t.exiting);
     const merged = mergeOptions(options);
 
@@ -276,7 +281,11 @@ const updateToast = (
     expectedInstanceId?: string
 ) => {
     const existing = store.toasts.find((t) => t.id === id);
-    if (!existing || (expectedInstanceId && existing.instanceId !== expectedInstanceId)) return;
+    if (
+        !existing ||
+        (expectedInstanceId && (existing.instanceId !== expectedInstanceId || existing.closing || existing.exiting))
+    )
+        return;
 
     const item = buildSileoItem(mergeUpdateOptions(existing, scopedDefaults, options), id, existing.position);
     const previousKey = timeoutKey(existing);
@@ -351,24 +360,13 @@ const createSileoApi = (scopedDefaults?: Partial<SileoOptions>): SileoApi => {
         },
 
         promise: <T>(promise: Promise<T> | (() => Promise<T>), opts: SileoPromiseOptions<T>): Promise<T> => {
-            let id: string;
-            let instanceId: string;
-            const loadingOpts = withDefaults({ ...opts.loading, position: opts.position });
-
-            if (opts.id) {
-                ({ id, instanceId } = createToast({
-                    ...loadingOpts,
-                    state: 'loading',
-                    duration: null,
-                    id: opts.id
-                }));
-            } else {
-                ({ id, instanceId } = createToast({
-                    ...loadingOpts,
-                    state: 'loading',
-                    duration: null
-                }));
-            }
+            const loadingOpts = withDefaults(definedOptions({ ...opts.loading, position: opts.position }));
+            const { id, instanceId } = createToast({
+                ...loadingOpts,
+                state: 'loading',
+                duration: null,
+                id: opts.id
+            });
 
             const p: Promise<T> =
                 typeof promise === 'function' ? Promise.resolve().then(() => promise()) : Promise.resolve(promise);

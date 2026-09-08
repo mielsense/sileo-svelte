@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Button } from '$docs/components/ui/button/index.js';
     import { resolve } from '$app/paths';
     import { page } from '$app/state';
     const status = $derived(page.status);
@@ -16,22 +17,17 @@
     id="main-content"
     class="error-main"
 >
-    <div>
+    <div class="error-content">
         <p class="error-status">Error {status}</p>
         <h1>{status === 404 ? 'Page not found' : 'Page unavailable'}</h1>
-        <p>
-            {status === 404
-                ? 'There is no documentation page at this address.'
-                : 'The documentation page could not load.'}
+        <p class="error-description">
+            {status === 404 ? 'There is no page at this address.' : 'This page could not load.'}
         </p>
-        <div class="doc-actions">
-            <a
-                class="primary-action"
-                href={resolve('/docs')}>Open documentation</a
-            >
-            <a
-                class="secondary-action"
-                href={resolve('/playground')}>Open playground</a
+        <div class="error-actions">
+            <Button href={resolve('/docs')}>Open documentation</Button>
+            <Button
+                variant="outline"
+                href={resolve('/playground')}>Open playground</Button
             >
         </div>
     </div>

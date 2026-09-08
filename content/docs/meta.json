@@ -2,7 +2,7 @@
     "sections": [
         {
             "title": "Getting started",
-            "pages": ["index", "installation", "changelog"]
+            "pages": ["index", "installation", "agent-skill", "changelog"]
         },
         {
             "title": "Guides",
