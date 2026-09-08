@@ -83,7 +83,7 @@ Promise completion cannot revive a toast that the user closed, dismissed, or rep
 
 Start with `fill`, `roundness`, the typed `styles` slots, or `classes`. Apply custom classes in global CSS because Toaster renders outside the component that called the helper. Style slots include `titleColor`, `descriptionColor`, `badgeColor`, `badgeBackground`, `buttonColor`, `buttonBackground`, `buttonHoverBackground`, and `backdropFilter`. Class slots include `toast`, `background`, `title`, `description`, `badge`, and `button`. Set width with `--sileo-width`. Avoid overriding the root's animated height, opacity, or transform.
 
-For frosted glass, pair a translucent fill with `styles.backdropFilter`:
+For frosted glass, use version 0.2.1 or newer for the expansion animation fix. Pair a translucent fill with `styles.backdropFilter`:
 
 ```ts
 sileo.success({

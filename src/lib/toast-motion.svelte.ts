@@ -118,14 +118,17 @@ export function createToastMotion(options: ToastMotionOptions) {
             )
         );
         controls.start('body', () =>
-            animate(
-                body,
-                {
-                    height: target.bodyHeight,
-                    opacity: targetOpen ? 1 : 0
-                },
-                transition(reduced, 0, targetOpen ? 0.25 : 0)
-            )
+            animate(body, { height: target.bodyHeight }, transition(reduced, 0, targetOpen ? 0.25 : 0))
+        );
+        // SVG masks (including <use> clones) do not reliably paint WAAPI opacity.
+        // Commit each frame to the source style so the glass and solid silhouettes agree.
+        controls.start('body-opacity', () =>
+            animate(Number.parseFloat(getComputedStyle(body).opacity) || 0, targetOpen ? 1 : 0, {
+                ...transition(reduced, 0, targetOpen ? 0.25 : 0),
+                onUpdate: (opacity) => {
+                    body.style.opacity = String(opacity);
+                }
+            })
         );
     });
 

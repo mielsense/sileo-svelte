@@ -6,6 +6,15 @@ label: Changelog
 
 This project is still in beta. Each release is marked as breaking or non-breaking so upgrades do not depend on version numbers alone.
 
+## 0.2.1 · 2026-09-08
+
+**Release impact: Non-breaking**
+
+### Fixed
+
+- Frosted glass backgrounds now follow the body throughout expansion and collapse, including in WebKit.
+- The documentation center column has more room for text and code, matching the landing page and playground width on wide screens.
+
 ## 0.2.0 · 2026-09-08
 
 **Release impact: Breaking**

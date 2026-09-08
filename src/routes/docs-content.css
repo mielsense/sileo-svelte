@@ -1,6 +1,6 @@
 .docs-frame {
     display: grid;
-    width: min(100%, 1440px);
+    width: min(100%, 1888px);
     min-height: calc(100dvh - 128px);
     margin-block-start: 0;
     margin-inline: auto;
@@ -85,9 +85,8 @@
     min-width: 0;
 }
 .doc-main {
-    width: min(100%, 790px);
-    margin-inline: auto;
-    padding: 64px 52px 96px;
+    width: 100%;
+    padding: 64px clamp(28px, 4vw, 80px) 96px;
 }
 .doc-header {
     margin-block-end: 48px;

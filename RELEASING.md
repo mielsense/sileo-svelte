@@ -36,8 +36,8 @@ bun audit
 Review and commit the changes. Push the commit before creating the release tag. For this release:
 
 ```bash
-git tag -a v0.2.0 -m "Release 0.2.0"
-git push origin v0.2.0
+git tag -a v0.2.1 -m "Release 0.2.1"
+git push origin v0.2.1
 ```
 
 Pushing the tag starts publication. Do not push it until the release is ready.
