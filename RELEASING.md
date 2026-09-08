@@ -16,7 +16,7 @@ The publisher belongs to `release.yml`, where the publish job runs. `ci.yml` is 
 
 ## Prepare a release
 
-Update `package.json` and the matching entry in `content/docs/changelog.md`. Run `bun install` to update the lockfile if needed. For 0.2.0, replace the release-candidate note with the publication date when the release is ready.
+Update `package.json` and the matching entry in `content/docs/changelog.md`. Run `bun install` to update the lockfile if needed. Replace any release-candidate note with the publication date when the release is ready.
 
 Run the checks from the repository root:
 

@@ -320,7 +320,7 @@ The examples cover success, promises, retries, shared defaults, custom styles, a
 
 ## Releasing
 
-Version 0.2.0 is prepared for release. It requires Svelte 5.56 or newer.
+Version 0.2.0 requires Svelte 5.56 or newer.
 See [the release guide](RELEASING.md) for the one-time npm trusted publisher setup
 and the version tag that starts publication.
 

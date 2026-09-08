@@ -6,9 +6,7 @@ label: Changelog
 
 This project is still in beta. Each release is marked as breaking or non-breaking so upgrades do not depend on version numbers alone.
 
-## 0.2.0
-
-Release candidate. Publication is pending.
+## 0.2.0 · 2026-09-08
 
 **Release impact: Breaking**
 
@@ -65,7 +63,7 @@ Release candidate. Publication is pending.
 
 ### Upgrade
 
-Once 0.2.0 is published, update Svelte to 5.56 or newer with your project's package manager, then install the library:
+Update Svelte to 5.56 or newer with your project's package manager, then install the library:
 
 ```bash
 npm install sileo-svelte@^0.2.0
