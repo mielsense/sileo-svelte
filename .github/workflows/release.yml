@@ -53,7 +53,7 @@ jobs:
                   }
                   JS
             - name: Publish tested tarball
-              run: npm publish package-artifact/*.tgz --ignore-scripts --provenance --access public
+              run: npm publish ./package-artifact/*.tgz --ignore-scripts --provenance --access public
             - name: Verify published bytes
               run: |
                   node --input-type=module <<'JS'
